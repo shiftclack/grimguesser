@@ -7,10 +7,10 @@ local LogicTestContext = {}
 ---@return table
 function LogicTestContext.Create()
     local loaded = LogicContext.Create()
-    local fixtures = FixtureFactory.Create(loaded.DeathpoolConstants, loaded.DeathpoolDatabase)
+    local fixtures = FixtureFactory.Create(loaded.GrimConstants, loaded.GrimDatabase)
     loaded.Fixtures = fixtures
-    loaded.SCORE_RULES = loaded.DeathpoolConstants.SCORING
-    loaded.STORAGE_RULES = loaded.DeathpoolConstants.STORAGE
+    loaded.SCORE_RULES = loaded.GrimConstants.SCORING
+    loaded.STORAGE_RULES = loaded.GrimConstants.STORAGE
     loaded.Helpers = LogicHelpers.Create(loaded.SCORE_RULES, fixtures)
     return loaded
 end

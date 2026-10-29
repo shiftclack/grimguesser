@@ -2,8 +2,8 @@ local assert = require("luassert")
 describe("Database state", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolLogic
-    local DeathpoolDatabase
+    local GrimLogic
+    local GrimDatabase
     local Fixtures
     local SCORE_RULES
     local STORAGE_RULES
@@ -11,8 +11,8 @@ describe("Database state", function()
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolLogic = context.DeathpoolLogic
-        DeathpoolDatabase = context.DeathpoolDatabase
+        GrimLogic = context.GrimLogic
+        GrimDatabase = context.GrimDatabase
         Fixtures = context.Fixtures
         SCORE_RULES = context.SCORE_RULES
         STORAGE_RULES = context.STORAGE_RULES
@@ -22,11 +22,11 @@ describe("Database state", function()
     describe("initialization and normalization", function()
         it("preserves database identity", function()
             local database = {}
-            local returnedDatabase = DeathpoolDatabase.Init(database)
+            local returnedDatabase = GrimDatabase.Init(database)
 
             assert.equals(database, returnedDatabase, "database init should return the same table instance")
             assert.equals(
-                context.DeathpoolMigration.CURRENT_VERSION,
+                context.GrimMigration.CURRENT_VERSION,
                 database.databaseVersion,
                 "database init should migrate state to the current database version"
             )
@@ -39,7 +39,7 @@ describe("Database state", function()
         end)
 
         it("repairs corrupt top-level values", function()
-            local returnedDatabase = DeathpoolDatabase.Init(nil)
+            local returnedDatabase = GrimDatabase.Init(nil)
 
             assert.is_table(returnedDatabase, "database init should repair a corrupt top-level savedvariables value")
             assert.is_table(returnedDatabase.recentDeaths, "database init should still populate default recent death storage after repair")
@@ -70,10 +70,10 @@ describe("Database state", function()
                 longestPredictionStreak = "10",
             }
 
-            DeathpoolDatabase.Init(database)
+            GrimDatabase.Init(database)
 
             assert.equals(
-                context.DeathpoolMigration.CURRENT_VERSION,
+                context.GrimMigration.CURRENT_VERSION,
                 database.databaseVersion,
                 "database init should repair and migrate an invalid database version"
             )
@@ -115,7 +115,7 @@ describe("Database state", function()
         it("defaults guild announcements", function()
             local database = {}
 
-            DeathpoolDatabase.Init(database)
+            GrimDatabase.Init(database)
 
             assert.equals(false, database.announcements.enabled, "database init should disable guild announcements by default")
             assert.equals(
@@ -155,7 +155,7 @@ describe("Database state", function()
             local deathHistory = database.deathHistory
             local successfulDeaths = database.successfullyPredictedDeaths
 
-            DeathpoolDatabase.Init(database)
+            GrimDatabase.Init(database)
 
             assert.equals(recentDeaths, database.recentDeaths, "database init should preserve recent death table identity")
             assert.equals(deathHistory, database.deathHistory, "database init should preserve death history table identity")
@@ -180,16 +180,16 @@ describe("Database state", function()
         it("exposes guild announcement accessors", function()
             local emptyDatabase = {}
             ---@cast emptyDatabase table
-            local database = DeathpoolDatabase.Init(emptyDatabase)
+            local database = GrimDatabase.Init(emptyDatabase)
 
             assert.equals(
                 false,
-                DeathpoolDatabase.GetGuildAnnouncementsEnabled(database),
+                GrimDatabase.GetGuildAnnouncementsEnabled(database),
                 "guild announcements should be disabled by default"
             )
             assert.equals(
                 true,
-                DeathpoolDatabase.SetGuildAnnouncementsEnabled(database, true),
+                GrimDatabase.SetGuildAnnouncementsEnabled(database, true),
                 "guild announcement setter should persist enabled state"
             )
             assert.equals(
@@ -200,12 +200,12 @@ describe("Database state", function()
 
             assert.equals(
                 true,
-                DeathpoolDatabase.GetAnnounceDeathToGuild(database),
+                GrimDatabase.GetAnnounceDeathToGuild(database),
                 "death score announcement getter should use the nested default"
             )
             assert.equals(
                 false,
-                DeathpoolDatabase.SetAnnounceDeathToGuild(database, false),
+                GrimDatabase.SetAnnounceDeathToGuild(database, false),
                 "death score announcement setter should persist disabled state"
             )
             assert.equals(
@@ -216,12 +216,12 @@ describe("Database state", function()
 
             assert.equals(
                 false,
-                DeathpoolDatabase.GetAnnounceScoreOnLevelUp(database),
+                GrimDatabase.GetAnnounceScoreOnLevelUp(database),
                 "level-up score announcement getter should use the nested default"
             )
             assert.equals(
                 false,
-                DeathpoolDatabase.SetAnnounceScoreOnLevelUp(database, false),
+                GrimDatabase.SetAnnounceScoreOnLevelUp(database, false),
                 "level-up score announcement setter should persist disabled state"
             )
             assert.equals(
@@ -234,22 +234,22 @@ describe("Database state", function()
         it("defaults the first-run flag", function()
             local database = {}
 
-            DeathpoolDatabase.Init(database)
+            GrimDatabase.Init(database)
 
             assert.equals(false, database.hasSeenFirstRun, "database init should default the first-run flag to false")
             assert.equals(
                 false,
-                DeathpoolDatabase.GetHasSeenFirstRun(database),
+                GrimDatabase.GetHasSeenFirstRun(database),
                 "database getter should report unseen first-run state by default"
             )
             assert.equals(
                 true,
-                DeathpoolDatabase.SetHasSeenFirstRun(database, true),
+                GrimDatabase.SetHasSeenFirstRun(database, true),
                 "database setter should persist a seen first-run state"
             )
             assert.equals(
                 true,
-                DeathpoolDatabase.GetHasSeenFirstRun(database),
+                GrimDatabase.GetHasSeenFirstRun(database),
                 "database getter should report the persisted first-run state"
             )
         end)
@@ -279,8 +279,8 @@ describe("Database state", function()
                 },
             })
 
-            local sources = DeathpoolDatabase.GetDeathHistorySourceNames(database)
-            local zones = DeathpoolDatabase.GetDeathHistoryZones(database)
+            local sources = GrimDatabase.GetDeathHistorySourceNames(database)
+            local zones = GrimDatabase.GetDeathHistoryZones(database)
 
             assert.equals(2, #sources, "history sources should contain each normalized value once")
             assert.equals("Alpha Beast", sources[1], "history sources should be sorted alphabetically")
@@ -326,7 +326,7 @@ describe("Database state", function()
             local deathHistory = database.deathHistory
             local successfulDeaths = database.successfullyPredictedDeaths
 
-            DeathpoolDatabase.ResetGameplayState(database)
+            GrimDatabase.ResetGameplayState(database)
 
             assert.equals(nil, database.lockedPrediction, "reset gameplay state should clear the locked prediction")
             assert.equals(nil, database.lastPrediction, "reset gameplay state should clear the last prediction")
@@ -364,7 +364,7 @@ describe("Database state", function()
                 lockedAt = 99999,
             })
 
-            DeathpoolLogic.ApplyLockedPrediction(samePredictionDatabase, samePrediction)
+            GrimLogic.ApplyLockedPrediction(samePredictionDatabase, samePrediction)
             assert.equals(
                 4,
                 samePredictionDatabase.correctPredictionStreak,
@@ -372,7 +372,7 @@ describe("Database state", function()
             )
             assert.equals(
                 "hogger",
-                DeathpoolLogic.GetPredictionElements(samePredictionDatabase.lockedPrediction).source,
+                GrimLogic.GetPredictionElements(samePredictionDatabase.lockedPrediction).source,
                 "apply locked prediction should store the normalized prediction elements"
             )
             assert.equals(
@@ -397,7 +397,7 @@ describe("Database state", function()
                 sourceLabel = "Defias",
             })
 
-            DeathpoolLogic.ApplyLockedPrediction(changedPredictionDatabase, changedPrediction)
+            GrimLogic.ApplyLockedPrediction(changedPredictionDatabase, changedPrediction)
             assert.equals(
                 0,
                 changedPredictionDatabase.correctPredictionStreak,
@@ -417,12 +417,12 @@ describe("Database state", function()
                 }),
             })
 
-            DeathpoolLogic.ClearLockedPrediction(clearedDatabase)
+            GrimLogic.ClearLockedPrediction(clearedDatabase)
             assert.equals(nil, clearedDatabase.lockedPrediction, "clearing the locked prediction should unlock the database state")
             assert.is_not_nil(clearedDatabase.lastPrediction, "clearing the locked prediction should preserve a draft prediction")
             assert.equals(
                 "hogger",
-                DeathpoolLogic.GetPredictionElements(clearedDatabase.lastPrediction).source,
+                GrimLogic.GetPredictionElements(clearedDatabase.lastPrediction).source,
                 "clearing the locked prediction should keep the most recent locked prediction as the draft"
             )
         end)
@@ -433,7 +433,7 @@ describe("Database state", function()
                 lockedPrediction = lockedPrediction,
             })
 
-            local updatedDraft = DeathpoolLogic.UpdateDraftPrediction(database, {
+            local updatedDraft = GrimLogic.UpdateDraftPrediction(database, {
                 elements = {
                     source = "Defias Pillager",
                     zone = "Westfall",
@@ -443,12 +443,12 @@ describe("Database state", function()
             assert.is_not_nil(updatedDraft, "updating a draft prediction should return the normalized draft")
             assert.equals(
                 "defias pillager",
-                DeathpoolLogic.GetPredictionElements(database.draftPrediction).source,
+                GrimLogic.GetPredictionElements(database.draftPrediction).source,
                 "updating a draft prediction should normalize the stored source"
             )
             assert.equals(
                 "westfall",
-                DeathpoolLogic.GetPredictionElements(database.draftPrediction).zone,
+                GrimLogic.GetPredictionElements(database.draftPrediction).zone,
                 "updating a draft prediction should normalize the stored zone"
             )
             assert.equals(
@@ -457,7 +457,7 @@ describe("Database state", function()
                 "updating a draft prediction should not disturb the locked prediction"
             )
 
-            local clearedDraft = DeathpoolLogic.UpdateDraftPrediction(database, {
+            local clearedDraft = GrimLogic.UpdateDraftPrediction(database, {
                 elements = {},
             })
 
@@ -490,7 +490,7 @@ describe("Database state", function()
             end
 
             for index, expectedMultiplier in ipairs(expectedMultipliers) do
-                local added, evaluation = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                local added, evaluation = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = "Streak" .. tostring(index),
                     sourceName = "Hogger",
                 }), Fixtures.addDeathOptions({
@@ -520,7 +520,7 @@ describe("Database state", function()
                     )
                     assert.equals(
                         expectedMultiplier,
-                        DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[index]),
+                        GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[index]),
                         "streak match " .. tostring(index) .. " should use the right multiplier"
                     )
                     assert.equals(
@@ -530,7 +530,7 @@ describe("Database state", function()
                     )
                     assert.equals(
                         sourcePoints * expectedMultiplier,
-                        DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[index]),
+                        GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[index]),
                         "streak match " .. tostring(index) .. " should award multiplied points"
                     )
                     assert.equals(expectedTotals[index], database.totalPoints, "streak match " .. tostring(index) .. " should roll into the running total")
@@ -554,7 +554,7 @@ describe("Database state", function()
             local failedInsertIndex
 
             for index = 1, 10 do
-                local added, evaluation = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                local added, evaluation = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = "Formula" .. tostring(index),
                 }), Fixtures.addDeathOptions({
                     maxRecentDeaths = STORAGE_RULES.maxRecentDeaths + 7,
@@ -573,12 +573,12 @@ describe("Database state", function()
                     assert.equals(fullMatchBasePoints, evaluation.basePoints, "full formula should use the configured full-match base points")
                     assert.equals(
                         expectedMultiplier,
-                        DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[index]),
+                        GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[index]),
                         "full formula should use the summed display multiplier for streak " .. tostring(index)
                     )
                     assert.equals(
                         expectedAward,
-                        DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[index]),
+                        GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[index]),
                         "full formula should award the correct total for streak " .. tostring(index)
                     )
                     assert.equals(
@@ -601,20 +601,20 @@ describe("Database state", function()
                     zoneLabel = false,
                 }),
             })
-            DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "HitOne",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
                 maxRecentDeaths = 10,
             }))
-            DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "HitTwo",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
                 maxRecentDeaths = 10,
             }))
 
-            local missedAdded = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local missedAdded = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "Missed",
                 sourceName = "Defias",
             }), Fixtures.addDeathOptions({
@@ -627,10 +627,10 @@ describe("Database state", function()
                 "a missed prediction should reset the streak to zero"
             )
             assert.equals(2, database.longestPredictionStreak, "a missed prediction should preserve the best streak reached")
-            assert.equals(0, DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[3]), "a missed prediction should display x0")
-            assert.equals(0, DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[3]), "a missed prediction should award zero points")
+            assert.equals(0, GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[3]), "a missed prediction should display x0")
+            assert.equals(0, GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[3]), "a missed prediction should award zero points")
 
-            local resetAdded = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local resetAdded = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "HitAfterMiss",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
@@ -641,12 +641,12 @@ describe("Database state", function()
             assert.equals(2, database.longestPredictionStreak, "the first hit after a miss should not reduce the longest streak")
             assert.equals(
                 Helpers.getDisplayMultiplier(1, 1),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[4]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[4]),
                 "the first hit after a miss should restart at the configured one-field multiplier"
             )
             assert.equals(
                 Helpers.getExpectedBasePoints({ source = true }) * Helpers.getDisplayMultiplier(1, 1),
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[4]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[4]),
                 "the first hit after a miss should award the configured one-field multiplier"
             )
             assert.equals(
@@ -665,7 +665,7 @@ describe("Database state", function()
                 lockedPrediction = Fixtures.prediction(),
                 correctPredictionStreak = 2,
             })
-            local added, evaluation = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local added, evaluation = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "AlmostRight",
                 zone = "Westfall",
             }), Fixtures.addDeathOptions({
@@ -685,13 +685,13 @@ describe("Database state", function()
             )
             assert.equals(
                 Helpers.getDisplayMultiplier(2, 3),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
                 "partial multi-field wins should show the summed matched-combination multiplier"
             )
             assert.equals(
                 Helpers.getExpectedBasePoints({ levelRange = "10-19", level = 12, source = true })
                     * Helpers.getDisplayMultiplier(2, 3),
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
                 "partial multi-field wins should apply the combo sum to the matched base points"
             )
         end)
@@ -704,7 +704,7 @@ describe("Database state", function()
                     zone = "elwynn forest",
                 }),
             })
-            local added, evaluation = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local added, evaluation = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "SameZone",
                 sourceName = "Hogger",
                 zone = "Elwynn Forest",
@@ -739,7 +739,7 @@ describe("Database state", function()
             )
             assert.equals(
                 expectedAwardedPoints,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
                 "same-zone bonus should roll into stored awarded points"
             )
             assert.equals(
@@ -756,7 +756,7 @@ describe("Database state", function()
                     zoneLabel = false,
                 }),
             })
-            local noZoneAdded, noZoneEvaluation = DeathpoolLogic.AddDeathToDatabase(
+            local noZoneAdded, noZoneEvaluation = GrimLogic.AddDeathToDatabase(
                 noZoneDatabase,
                 Helpers.createDeathForInsert({
                     name = "SameZoneNoPrediction",
@@ -788,7 +788,7 @@ describe("Database state", function()
             )
             assert.equals(
                 expectedNoZoneAwardedPoints,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(noZoneDatabase.recentDeaths[1]),
+                GrimLogic.GetStoredDeathAwardedPoints(noZoneDatabase.recentDeaths[1]),
                 "same-zone bonus should still roll into stored awarded points without a zone prediction"
             )
         end)
@@ -798,7 +798,7 @@ describe("Database state", function()
                 correctPredictionStreak = 3,
                 longestPredictionStreak = 3,
             })
-            local added, evaluation = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local added, evaluation = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "Unpredicted",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
@@ -818,12 +818,12 @@ describe("Database state", function()
             assert.equals(0, #database.successfullyPredictedDeaths, "a death with no locked prediction should not add a successful predicted death")
             assert.equals(
                 0,
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
                 "a death with no locked prediction should display x0"
             )
             assert.equals(
                 0,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
                 "a death with no locked prediction should award zero points"
             )
             assert.equals(0, database.totalPoints, "a death with no locked prediction should not change the total")
@@ -835,7 +835,7 @@ describe("Database state", function()
             local database = Fixtures.database({
                 deathHistory = false,
             })
-            local added = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local added = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "HistoryInit",
                 sourceName = "Defias",
             }), Fixtures.addDeathOptions({
@@ -874,7 +874,7 @@ describe("Database state", function()
                 }),
             })
 
-            local state = DeathpoolLogic.GetDisplayState(database)
+            local state = GrimLogic.GetDisplayState(database)
 
             assert.equals(database.recentDeaths, state.deaths, "display state should expose the stored recent deaths")
             assert.equals(

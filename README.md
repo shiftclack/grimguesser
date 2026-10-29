@@ -1,8 +1,8 @@
-# Hardcore Death Pool
+# Grim Guesser
 
-Hardcore Death Pool is a [World of Warcraft](https://worldofwarcraft.blizzard.com) mini-game addon. Players score points by predicting where and how future player deaths will happen.
+Grim Guesser is a [World of Warcraft](https://worldofwarcraft.blizzard.com) mini-game addon. Players score points by predicting where and how future player deaths will happen.
 
-[![Build](https://github.com/shiftclack/deathpool/actions/workflows/workflow.yaml/badge.svg)](https://github.com/shiftclack/deathpool/actions/workflows/workflow.yaml) [![GitHub Release](https://img.shields.io/github/v/release/shiftclack/deathpool?display_name=tag)](https://github.com/shiftclack/deathpool/releases)
+[![Build](https://github.com/shiftclack/grimguesser/actions/workflows/workflow.yaml/badge.svg)](https://github.com/shiftclack/grimguesser/actions/workflows/workflow.yaml) [![GitHub Release](https://img.shields.io/github/v/release/shiftclack/grimguesser?display_name=tag)](https://github.com/shiftclack/grimguesser/releases)
 
 ![Demo](./docs/demo.png)
 
@@ -15,16 +15,16 @@ Hardcore Death Pool is a [World of Warcraft](https://worldofwarcraft.blizzard.co
 
 ## Commands
 
-- `/deathpool` to show/hide the window
-- `/deathpool help` shows the help message
+- `/grimguesser` to show/hide the window
+- `/grimguesser help` shows the help message
 
 ## Download
 
-Download the latest release from [https://github.com/shiftclack/deathpool/releases/](https://github.com/shiftclack/deathpool/releases/)
+Download the latest release from [https://github.com/shiftclack/grimguesser/releases/](https://github.com/shiftclack/grimguesser/releases/)
 
 ## Install
 
-Copy this folder into `World of Warcraft\_classic_era_\Interface\AddOns`.
+Copy the `GrimGuesser` folder into `World of Warcraft\_classic_era_\Interface\AddOns`.
 
 ## Compatibility
 
@@ -43,4 +43,4 @@ The following libraries are included with the addon:
 
 Copyright © 2026 Shiftclack
 
-Except for the third-party libraries contained in the [`libs/`](libs/) directory, Hardcore Death Pool is licensed under the [PolyForm Strict License 1.0.0](LICENSE.md).
+Except for the third-party libraries contained in the [`libs/`](libs/) directory, Grim Guesser is licensed under the [PolyForm Strict License 1.0.0](LICENSE.md).

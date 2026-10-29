@@ -27,17 +27,17 @@ function LogicContext.Create(options)
     env.date = os.date
     env.time = os.time
 
-    loader:LoadThrough("DeathpoolMigration")
+    loader:LoadThrough("GrimMigration")
 
     return {
         env = env,
         loader = loader,
         ns = loader.ns,
-        DeathpoolConstants = loader.ns.DeathpoolConstants,
-        DeathpoolDatabase = loader.ns.DeathpoolDatabase,
-        DeathpoolMigration = loader.ns.DeathpoolMigration,
-        DeathpoolLogic = loader.ns.DeathpoolLogic,
-        DeathpoolStats = loader.ns.DeathpoolStats,
+        GrimConstants = loader.ns.GrimConstants,
+        GrimDatabase = loader.ns.GrimDatabase,
+        GrimMigration = loader.ns.GrimMigration,
+        GrimLogic = loader.ns.GrimLogic,
+        GrimStats = loader.ns.GrimStats,
     }
 end
 

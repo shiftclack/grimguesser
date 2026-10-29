@@ -1,6 +1,6 @@
 # game.md
 
-Documentation for the HARDCORE DEATH POOL game rules.
+Documentation for the GRIM GUESSER game rules.
 
 ## Goal
 
@@ -51,7 +51,7 @@ The goal of the game is to accumulate as many points as possible from the deaths
 
 ### Configuration
 
-- Scoring is controlled by configured constants in `DeathpoolConstants.lua`
+- Scoring is controlled by configured constants in `GrimConstants.lua`
 - Scoring is kept configurable to support easy tuning of the game
 
 ### Points
@@ -96,4 +96,4 @@ The goal of the game is to accumulate as many points as possible from the deaths
 
 - The `same-zone bonus` grants additional points if the zone of the death is the same as the user's current zone.
 
-_Copyright © 2026 Shiftclack. Licensed under the PolyForm Strict License 1.0.0; see [LICENSE.md](https://github.com/shiftclack/deathpool/blob/main/LICENSE.md)._
+_Copyright © 2026 Shiftclack. Licensed under the PolyForm Strict License 1.0.0; see [LICENSE.md](https://github.com/shiftclack/grimguesser/blob/main/LICENSE.md)._

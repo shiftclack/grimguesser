@@ -6,13 +6,13 @@ describe("Death announcement parser", function()
     local AddonLoader = require("tests.support_addon_loader")
 
     ---@param globals table<string, any>
-    ---@return DeathpoolParser, table
+    ---@return GrimParser, table
     local function loadParserModule(globals)
         local loader = AddonLoader.Create()
         for key, value in pairs(globals) do
             loader.env[key] = value
         end
-        return loader:Load("DeathpoolParser"), loader.env
+        return loader:Load("GrimParser"), loader.env
     end
 
     local OFFICIAL_ENGLISH_HARDCORE_DEATH_FORMATS = {
@@ -26,15 +26,15 @@ describe("Death announcement parser", function()
         HARDCORE_CAUSEOFDEATH_PVP = "|Hplayer:%s|h[%s]|h has been slain by %s in %s! They were level %d",
     }
 
-    local DeathpoolParser
+    local GrimParser
 
     before_each(function()
-        DeathpoolParser = loadParserModule(OFFICIAL_ENGLISH_HARDCORE_DEATH_FORMATS)
+        GrimParser = loadParserModule(OFFICIAL_ENGLISH_HARDCORE_DEATH_FORMATS)
     end)
     local TestData = require("tests.fixtures.death_announcements")
 
     ---@param overrides table<string, any>
-    ---@param callback fun(parser: DeathpoolParser, env: table)
+    ---@param callback fun(parser: GrimParser, env: table)
     local function withParserGlobals(overrides, callback)
         local parser, env = loadParserModule(overrides or {})
         callback(parser, env)
@@ -42,7 +42,7 @@ describe("Death announcement parser", function()
 
     describe("observed announcements", function()
         it("parses creature deaths", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Drakedog] has been slain by a Kobold Vermin in Elwynn Forest! They were level 6"
             )
 
@@ -55,7 +55,7 @@ describe("Death announcement parser", function()
         end)
 
         it("parses falling deaths", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Ming] fell to their death in Cliffspring Falls! They were level 16"
             )
 
@@ -68,7 +68,7 @@ describe("Death announcement parser", function()
         end)
 
         it("parses drowning deaths", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Ming] drowned to death in The Deadmines! They were level 18"
             )
 
@@ -85,7 +85,7 @@ describe("Death announcement parser", function()
         end)
 
         it("rejects drowned-in messages", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Ming] drowned in The Deadmines! They were level 18"
             )
 
@@ -93,7 +93,7 @@ describe("Death announcement parser", function()
         end)
 
         it("strips named articles", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Drakedog] has been slain by the Hogger in Elwynn Forest! They were level 12"
             )
 
@@ -102,7 +102,7 @@ describe("Death announcement parser", function()
         end)
 
         it("strips bracketed articles", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Drakedog] has been slain by [an Ancient Spider] in Tirisfal Glades! They were level 8"
             )
 
@@ -113,7 +113,7 @@ describe("Death announcement parser", function()
 
     describe("text sanitization", function()
         it("strips color and hyperlink markup", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "|cffff2020[Drakedog]|r has been slain by "
                     .. "|Hunit:Creature-0|h[a Kobold Miner]|h in Elwynn Forest! They were level 10"
             )
@@ -128,7 +128,7 @@ describe("Death announcement parser", function()
         end)
 
         it("preserves sanitized source messages", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "|cffff2020[Drakedog]|r has been slain by "
                     .. "|Hunit:Creature-0|h[a Kobold Miner]|h in Elwynn Forest! They were level 10"
             )
@@ -197,7 +197,7 @@ describe("Death announcement parser", function()
             }
 
             for _, case in ipairs(cases) do
-                local pattern = DeathpoolParser.BuildPatternFromFormat(case.format)
+                local pattern = GrimParser.BuildPatternFromFormat(case.format)
 
                 assert.equals(case.pattern, pattern, case.name .. " official format should convert to the expected pattern")
                 assert.is_not_nil(
@@ -208,7 +208,7 @@ describe("Death announcement parser", function()
         end)
 
         it("builds patterns from multiple placeholders", function()
-            local pattern = DeathpoolParser.BuildPatternFromFormat("%s was slain by %s at level %d")
+            local pattern = GrimParser.BuildPatternFromFormat("%s was slain by %s at level %d")
 
             assert.is_truthy(pattern, "pattern builder should support multiple ordinary format placeholders")
             assert.is_not_nil(
@@ -218,7 +218,7 @@ describe("Death announcement parser", function()
         end)
 
         it("escapes literal pattern characters", function()
-            local pattern = DeathpoolParser.BuildPatternFromFormat("(%s) at level %d?")
+            local pattern = GrimParser.BuildPatternFromFormat("(%s) at level %d?")
 
             assert.is_truthy(pattern, "pattern builder should return a pattern for literal punctuation")
             assert.is_not_nil(
@@ -310,18 +310,18 @@ describe("Death announcement parser", function()
         it("returns nil for blank messages", function()
             assert.equals(
                 nil,
-                DeathpoolParser.ParseBlizzardDeathMessage(""),
+                GrimParser.ParseBlizzardDeathMessage(""),
                 "blank messages should not parse"
             )
             assert.equals(
                 nil,
-                DeathpoolParser.ParseBlizzardDeathMessage(nil),
+                GrimParser.ParseBlizzardDeathMessage(nil),
                 "nil messages should not parse"
             )
         end)
 
         it("returns nil for malformed observed messages", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage(
+            local death = GrimParser.ParseBlizzardDeathMessage(
                 "[Drakedog] has been slain by Hogger! They were level 12"
             )
 
@@ -329,13 +329,13 @@ describe("Death announcement parser", function()
         end)
 
         it("returns nil for unknown messages", function()
-            local death = DeathpoolParser.ParseBlizzardDeathMessage("This is not a Hardcore death message")
+            local death = GrimParser.ParseBlizzardDeathMessage("This is not a Hardcore death message")
             assert.equals(nil, death, "unknown message should not parse")
         end)
 
         it("parses fixture messages", function()
             for _, case in ipairs(TestData.parser_messages or {}) do
-                local death = DeathpoolParser.ParseBlizzardDeathMessage(case.rawMessage)
+                local death = GrimParser.ParseBlizzardDeathMessage(case.rawMessage)
                 local label = "fixture " .. tostring(case.id)
 
                 if case.expectNil == true then

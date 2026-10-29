@@ -20,27 +20,27 @@ describe("Autocomplete UI", function()
     describe("suggestion sources", function()
         it("builds source and zone lists from current death history", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local findDropdownButtonByText = context.findDropdownButtonByText
 
-            table.insert(env.DeathpoolCharacterState.deathHistory, Fixtures.storedDeath({
+            table.insert(env.GrimCharacterState.deathHistory, Fixtures.storedDeath({
                 sourceName = "Zealous History Beast",
                 zone = "Zephyr Canyon",
             }))
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("zealous")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("zealous")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
             assert.is_truthy(
-                findDropdownButtonByText(Deathpool.dropdown, "Zealous History Beast"),
+                findDropdownButtonByText(GrimMainFrame.dropdown, "Zealous History Beast"),
                 "source suggestions should query history added after UI initialization"
             )
 
-            Deathpool.zoneEditBox:GetScript("OnEditFocusGained")(Deathpool.zoneEditBox)
-            Deathpool.zoneEditBox:SetText("zephyr")
-            Deathpool.zoneEditBox:GetScript("OnTextChanged")(Deathpool.zoneEditBox, true)
+            GrimMainFrame.zoneEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.zoneEditBox)
+            GrimMainFrame.zoneEditBox:SetText("zephyr")
+            GrimMainFrame.zoneEditBox:GetScript("OnTextChanged")(GrimMainFrame.zoneEditBox, true)
             assert.is_truthy(
-                findDropdownButtonByText(Deathpool.dropdown, "Zephyr Canyon"),
+                findDropdownButtonByText(GrimMainFrame.dropdown, "Zephyr Canyon"),
                 "location suggestions should query history added after UI initialization"
             )
         end)
@@ -54,8 +54,8 @@ describe("Autocomplete UI", function()
                     }),
                 },
             }))
-            local sourceSuggestions = context.DeathpoolUIAutocomplete.GetSourceSuggestions(env.DeathpoolCharacterState)
-            local zoneSuggestions = context.DeathpoolUIAutocomplete.GetZoneSuggestions(env.DeathpoolCharacterState)
+            local sourceSuggestions = context.GrimUIAutocomplete.GetSourceSuggestions(env.GrimCharacterState)
+            local zoneSuggestions = context.GrimUIAutocomplete.GetZoneSuggestions(env.GrimCharacterState)
             local hoggerCount = 0
             local uldamanCount = 0
 
@@ -76,14 +76,14 @@ describe("Autocomplete UI", function()
 
         it("preserves curated highlighting for dynamic source suggestions", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local findDropdownButtonByText = context.findDropdownButtonByText
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("vag")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("vag")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
 
-            local vagashButton = findDropdownButtonByText(Deathpool.dropdown, "Vagash")
+            local vagashButton = findDropdownButtonByText(GrimMainFrame.dropdown, "Vagash")
             assert.is_truthy(vagashButton, "highlighted curated sources should remain in the dynamic list")
             assert.is_truthy(
                 vagashButton and vagashButton.highlight:IsShown(),
@@ -95,32 +95,32 @@ describe("Autocomplete UI", function()
     describe("matching and visibility", function()
         it("hides the dropdown for blank and unmatched input", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("hog")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.is_truthy(Deathpool.dropdown:IsShown(), "typing a matching source should show the dropdown")
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("hog")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.is_truthy(GrimMainFrame.dropdown:IsShown(), "typing a matching source should show the dropdown")
 
-            Deathpool.sourceEditBox:SetText("")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.equals(false, Deathpool.dropdown:IsShown(), "blank autocomplete input should hide the dropdown")
+            GrimMainFrame.sourceEditBox:SetText("")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.equals(false, GrimMainFrame.dropdown:IsShown(), "blank autocomplete input should hide the dropdown")
 
-            Deathpool.sourceEditBox:SetText("zzzz-no-match")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.equals(false, Deathpool.dropdown:IsShown(), "unmatched autocomplete input should hide the dropdown")
+            GrimMainFrame.sourceEditBox:SetText("zzzz-no-match")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.equals(false, GrimMainFrame.dropdown:IsShown(), "unmatched autocomplete input should hide the dropdown")
         end)
 
         it("caps visible results at ten", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("r")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("r")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
 
             local visibleCount = 0
-            for _, button in ipairs(Deathpool.dropdown.buttons or {}) do
+            for _, button in ipairs(GrimMainFrame.dropdown.buttons or {}) do
                 if button:IsShown() then
                     visibleCount = visibleCount + 1
                 end
@@ -133,41 +133,41 @@ describe("Autocomplete UI", function()
     describe("dismissal and selection", function()
         it("hides the dropdown on escape and focus loss", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("hog")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.is_truthy(Deathpool.dropdown:IsShown(), "matching autocomplete input should show the dropdown before escape")
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("hog")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.is_truthy(GrimMainFrame.dropdown:IsShown(), "matching autocomplete input should show the dropdown before escape")
 
-            Deathpool.sourceEditBox.hasFocus = true
-            Deathpool.sourceEditBox:GetScript("OnEscapePressed")(Deathpool.sourceEditBox)
-            assert.equals(false, Deathpool.dropdown:IsShown(), "escape should hide the autocomplete dropdown")
-            assert.equals(false, Deathpool.sourceEditBox.hasFocus, "escape should clear focus from the active edit box")
+            GrimMainFrame.sourceEditBox.hasFocus = true
+            GrimMainFrame.sourceEditBox:GetScript("OnEscapePressed")(GrimMainFrame.sourceEditBox)
+            assert.equals(false, GrimMainFrame.dropdown:IsShown(), "escape should hide the autocomplete dropdown")
+            assert.equals(false, GrimMainFrame.sourceEditBox.hasFocus, "escape should clear focus from the active edit box")
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("hog")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.is_truthy(Deathpool.dropdown:IsShown(), "matching autocomplete input should show the dropdown before focus loss")
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("hog")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.is_truthy(GrimMainFrame.dropdown:IsShown(), "matching autocomplete input should show the dropdown before focus loss")
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusLost")(Deathpool.sourceEditBox)
-            assert.equals(false, Deathpool.dropdown:IsShown(), "focus loss should hide the autocomplete dropdown")
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusLost")(GrimMainFrame.sourceEditBox)
+            assert.equals(false, GrimMainFrame.dropdown:IsShown(), "focus loss should hide the autocomplete dropdown")
         end)
 
         it("keeps the dropdown closed after programmatic selection", function()
             local context = createUIContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool.sourceEditBox:GetScript("OnEditFocusGained")(Deathpool.sourceEditBox)
-            Deathpool.sourceEditBox:SetText("hog")
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, true)
-            assert.is_truthy(Deathpool.dropdown:IsShown(), "matching autocomplete input should show the dropdown before selection")
+            GrimMainFrame.sourceEditBox:GetScript("OnEditFocusGained")(GrimMainFrame.sourceEditBox)
+            GrimMainFrame.sourceEditBox:SetText("hog")
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, true)
+            assert.is_truthy(GrimMainFrame.dropdown:IsShown(), "matching autocomplete input should show the dropdown before selection")
 
-            Deathpool.dropdown.buttons[1]:GetScript("OnClick")()
-            Deathpool.sourceEditBox:GetScript("OnTextChanged")(Deathpool.sourceEditBox, false)
+            GrimMainFrame.dropdown.buttons[1]:GetScript("OnClick")()
+            GrimMainFrame.sourceEditBox:GetScript("OnTextChanged")(GrimMainFrame.sourceEditBox, false)
 
-            assert.equals("Hogger", Deathpool.sourceEditBox:GetText(), "one click should apply the chosen autocomplete value")
-            assert.equals(false, Deathpool.dropdown:IsShown(), "programmatic selection text changes should not reopen a single-result dropdown")
+            assert.equals("Hogger", GrimMainFrame.sourceEditBox:GetText(), "one click should apply the chosen autocomplete value")
+            assert.equals(false, GrimMainFrame.dropdown:IsShown(), "programmatic selection text changes should not reopen a single-result dropdown")
         end)
     end)
 end)

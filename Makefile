@@ -1,6 +1,6 @@
-DEATHPOOL_INSTALL_DIR ?= C:\Program Files (x86)\World of Warcraft\_classic_era_\Interface\AddOns\Deathpool
-DEATHPOOL_INSTALL_DIR_MACOS ?= /Applications/World of Warcraft/_classic_era_/Interface/AddOns
-DEATHPOOL_SOURCES := src/*.lua tests/*.lua tests/fixtures/*.lua .busted .luacov
+GRIM_INSTALL_DIR ?= C:\Program Files (x86)\World of Warcraft\_classic_era_\Interface\AddOns\GrimGuesser
+GRIM_INSTALL_DIR_MACOS ?= /Applications/World of Warcraft/_classic_era_/Interface/AddOns
+GRIM_SOURCES := src/*.lua tests/*.lua tests/fixtures/*.lua .busted .luacov
 DOCKER_SRC_DIR ?= /lua
 DOCKER_TEST_IMAGE ?= ghcr.io/shiftclack/lua-wow:1.3.0
 LUA ?= lua
@@ -50,10 +50,10 @@ check-docker:
 	docker run -v $(CURDIR):$(DOCKER_SRC_DIR) $(DOCKER_TEST_IMAGE) make check-ci
 
 syntax:
-	$(LUAC) -p $(DEATHPOOL_SOURCES)
+	$(LUAC) -p $(GRIM_SOURCES)
 
 lint:
-	$(LUACHECK) $(DEATHPOOL_SOURCES)
+	$(LUACHECK) $(GRIM_SOURCES)
 
 luals:
 	$(LUA_LANGUAGE_SERVER) --check .
@@ -65,7 +65,7 @@ test:
 	"$(BUSTED)" --lua="$(LUA)" $(TEST_ARGS)
 
 test-dist-ci:
-	DEATHPOOL_TEST_SOURCE_DIR=dist/Deathpool "$(BUSTED)" --lua="$(LUA)" $(TEST_ARGS)
+	GRIMGUESSER_TEST_SOURCE_DIR=dist/GrimGuesser "$(BUSTED)" --lua="$(LUA)" $(TEST_ARGS)
 
 coverage:
 	$(LUA) -e "os.remove('luacov.stats.out'); os.remove('luacov.report.out')"
@@ -79,10 +79,10 @@ coverage-summary: coverage-report
 
 # note: use dist-ci to build a real package
 dist: test clean build
-	cd /D dist && zip -r Deathpool.zip Deathpool
+	cd /D dist && zip -r GrimGuesser.zip GrimGuesser
 
 dist-ci: clean-ci build-ci minify-ci version-ci test-dist-ci
-	cd dist && zip -r Deathpool.zip Deathpool
+	cd dist && zip -r GrimGuesser.zip GrimGuesser
 
 dist-docker:
 	docker run -v "$(CURDIR):$(DOCKER_SRC_DIR)" \
@@ -91,27 +91,27 @@ dist-docker:
 		"$(DOCKER_TEST_IMAGE)" make dist-ci
 
 version-ci:
-	bash ./scripts/version.sh "$(TAG)" "dist/Deathpool/Deathpool_Vanilla.toc" "dist/Deathpool/DeathpoolConstants.lua"
+	bash ./scripts/version.sh "$(TAG)" "dist/GrimGuesser/GrimGuesser_Vanilla.toc" "dist/GrimGuesser/GrimConstants.lua"
 
 build:
-	powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist,dist\Deathpool,dist\Deathpool\libs | Out-Null"
-	powershell -NoProfile -Command "Copy-Item -Recurse README.md,LICENSE.md,src\*.lua,src\*.toc,libs dist\Deathpool\ -Force"
+	powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path dist,dist\GrimGuesser,dist\GrimGuesser\libs | Out-Null"
+	powershell -NoProfile -Command "Copy-Item -Recurse README.md,LICENSE.md,src\*.lua,src\*.toc,libs dist\GrimGuesser\ -Force"
 
 build-ci:
-	mkdir -p dist/Deathpool
-	cp LICENSE.md README.md src/*.lua src/*.toc dist/Deathpool/
-	mkdir -p dist/Deathpool/libs
-	cp -r libs/LibStub libs/CallbackHandler-1.0 libs/LibDataBroker-1.1 libs/LibDBIcon-1.0 dist/Deathpool/libs/
+	mkdir -p dist/GrimGuesser
+	cp LICENSE.md README.md src/*.lua src/*.toc dist/GrimGuesser/
+	mkdir -p dist/GrimGuesser/libs
+	cp -r libs/LibStub libs/CallbackHandler-1.0 libs/LibDataBroker-1.1 libs/LibDBIcon-1.0 dist/GrimGuesser/libs/
 
 minify-ci:
 	bash scripts/minify.sh
 
 clean:
 	powershell -NoProfile -Command "if (Test-Path dist) { Remove-Item -Recurse -Force dist }"
-	powershell -NoProfile -Command "if (Test-Path Deathpool.zip) { Remove-Item -Force Deathpool.zip }"
+	powershell -NoProfile -Command "if (Test-Path GrimGuesser.zip) { Remove-Item -Force GrimGuesser.zip }"
 
 clean-ci:
-	rm -rf dist Deathpool.zip
+	rm -rf dist GrimGuesser.zip
 
 # using scoop on windows https://scoop.sh/
 deps:
@@ -126,8 +126,8 @@ deps-ci:
 	luarocks install luasrcdiet
 
 install: build
-	powershell -NoProfile -Command "if ('$(DEATHPOOL_INSTALL_DIR)' -notmatch '[\\/]Interface[\\/]AddOns[\\/]Deathpool$$') { throw 'DEATHPOOL_INSTALL_DIR must end with Interface\\AddOns\\Deathpool' }"
-	powershell -NoProfile -Command "Copy-Item -Path dist\Deathpool\* -Destination '$(DEATHPOOL_INSTALL_DIR)' -Recurse -Force"
+	powershell -NoProfile -Command "if ('$(GRIM_INSTALL_DIR)' -notmatch '[\\/]Interface[\\/]AddOns[\\/]GrimGuesser$$') { throw 'GRIM_INSTALL_DIR must end with Interface\\AddOns\\GrimGuesser' }"
+	powershell -NoProfile -Command "Copy-Item -Path dist\GrimGuesser\* -Destination '$(GRIM_INSTALL_DIR)' -Recurse -Force"
 
 install-macos: build-ci
-	cp -r "dist/Deathpool" "$(DEATHPOOL_INSTALL_DIR_MACOS)"
+	cp -r "dist/GrimGuesser" "$(GRIM_INSTALL_DIR_MACOS)"

@@ -2,7 +2,7 @@ local assert = require("luassert")
 describe("Database retention", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolLogic
+    local GrimLogic
     local Fixtures
     local SCORE_RULES
     local STORAGE_RULES
@@ -10,7 +10,7 @@ describe("Database retention", function()
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolLogic = context.DeathpoolLogic
+        GrimLogic = context.GrimLogic
         Fixtures = context.Fixtures
         SCORE_RULES = context.SCORE_RULES
         STORAGE_RULES = context.STORAGE_RULES
@@ -28,7 +28,7 @@ describe("Database retention", function()
                     zone = false,
                 }),
             })
-            local added = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            local added = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "Drakedog",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
@@ -49,13 +49,13 @@ describe("Database retention", function()
             assert.equals("Defias Pillager", database.recentDeaths[1].server, "stored deaths should persist the server they were parsed on")
             assert.equals(
                 Helpers.getDisplayMultiplier(1, 1),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[1]),
                 "first match should use the configured one-field multiplier"
             )
             assert.equals(nil, database.recentDeaths[1].multiplier, "first match should not persist formatted multiplier text")
             assert.equals(
                 Helpers.getExpectedBasePoints({ source = true }) * Helpers.getDisplayMultiplier(1, 1),
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[1]),
                 "first match should store awarded multiplied points"
             )
             assert.equals(
@@ -71,7 +71,7 @@ describe("Database retention", function()
                 "per-death prediction snapshots should persist the full prediction timestamp"
             )
 
-            DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "Alamo",
                 sourceName = "Hogger",
             }), Fixtures.addDeathOptions({
@@ -86,16 +86,16 @@ describe("Database retention", function()
             assert.equals(2, database.longestPredictionStreak, "second match should raise the longest streak")
             assert.equals(
                 Helpers.getDisplayMultiplier(1, 2),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[2]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[2]),
                 "second match should combine the configured one-field bonus with the streak bonus"
             )
             assert.equals(
                 Helpers.getExpectedBasePoints({ source = true }) * Helpers.getDisplayMultiplier(1, 2),
-                DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[2]),
+                GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[2]),
                 "second match should award the combined multiplier"
             )
 
-            DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+            GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                 name = "Drakedog",
                 sourceName = "Murloc",
             }), Fixtures.addDeathOptions({
@@ -115,8 +115,8 @@ describe("Database retention", function()
             assert.equals("Drakedog", database.successfullyPredictedDeaths[1].name, "successful predicted deaths should store full death rows")
             assert.equals(0, database.correctPredictionStreak, "a miss should reset the streak")
             assert.equals(2, database.longestPredictionStreak, "a miss should not wipe the longest streak")
-            assert.equals(0, DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[2]), "a miss should display the default x0 multiplier")
-            assert.equals(0, DeathpoolLogic.GetStoredDeathAwardedPoints(database.recentDeaths[2]), "a miss should award no points")
+            assert.equals(0, GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[2]), "a miss should display the default x0 multiplier")
+            assert.equals(0, GrimLogic.GetStoredDeathAwardedPoints(database.recentDeaths[2]), "a miss should award no points")
         end)
     end)
 
@@ -136,7 +136,7 @@ describe("Database retention", function()
 
             for index = 1, maxDeathHistory + 5 do
                 local expectedAward = sourceOnlyBasePoints * Helpers.getDisplayMultiplier(1, index)
-                local added = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                local added = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = "History" .. tostring(index),
                     sourceName = "Hogger",
                 }), Fixtures.addDeathOptions({
@@ -157,7 +157,7 @@ describe("Database retention", function()
             assert.equals(runningTotal, database.totalPoints, "running score should keep cumulative points after history trimming")
             assert.equals(
                 runningTotal,
-                DeathpoolLogic.GetDisplayState(database).totalPoints,
+                GrimLogic.GetDisplayState(database).totalPoints,
                 "display state should keep using the persisted cumulative score after history trimming"
             )
         end)
@@ -176,7 +176,7 @@ describe("Database retention", function()
             local failedInsertIndex
 
             for index = 1, maxSuccessfullyPredictedDeaths + 5 do
-                local added = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                local added = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = "Success" .. tostring(index),
                     sourceName = "Hogger",
                 }), Fixtures.addDeathOptions({
@@ -214,7 +214,7 @@ describe("Database retention", function()
                 database.correctPredictionStreak = options.streakBefore or 0
                 database.longestPredictionStreak = math.max(database.longestPredictionStreak or 0, database.correctPredictionStreak)
 
-                local added = DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                local added = GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = options.name,
                     level = options.level or 12,
                     sourceName = options.sourceName or "Hogger",
@@ -269,8 +269,8 @@ describe("Database retention", function()
                     sourceName = candidate.sourceName or "Hogger",
                     zone = candidate.zone or "Elwynn Forest",
                 })
-                local elements = DeathpoolLogic.GetPredictionElements(candidate.prediction) or {}
-                local score = DeathpoolLogic.ScoreDeathEvent(elements, death, SCORE_RULES.previewStreak)
+                local elements = GrimLogic.GetPredictionElements(candidate.prediction) or {}
+                local score = GrimLogic.ScoreDeathEvent(elements, death, SCORE_RULES.previewStreak)
                 return score.awardedPoints or 0
             end
 
@@ -328,7 +328,7 @@ describe("Database retention", function()
                 }),
             })
             for index = 1, 11 do
-                DeathpoolLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
+                GrimLogic.AddDeathToDatabase(database, Helpers.createDeathForInsert({
                     name = "Match" .. tostring(index),
                     sourceName = "Hogger",
                 }), Fixtures.addDeathOptions({
@@ -347,12 +347,12 @@ describe("Database retention", function()
             assert.equals(11, database.longestPredictionStreak, "longest streak should track uncapped consecutive wins")
             assert.equals(
                 Helpers.getDisplayMultiplier(1, 10),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[10]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[10]),
                 "tenth consecutive match should combine the configured one-field bonus with the capped streak bonus"
             )
             assert.equals(
                 Helpers.getDisplayMultiplier(1, 11),
-                DeathpoolLogic.GetStoredDeathMultiplierValue(database.recentDeaths[11]),
+                GrimLogic.GetStoredDeathMultiplierValue(database.recentDeaths[11]),
                 "later matches should keep the capped combined multiplier for single-field hits"
             )
             assert.equals(expectedTotalPoints, database.totalPoints, "total points should include the combined match and streak multipliers")

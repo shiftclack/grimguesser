@@ -1,0 +1,48 @@
+## Interface: 11509
+## Title: Grim Guesser
+## Notes: Hardcore death prediction game.
+## Category: Minigames
+## IconTexture: Interface\Icons\INV_Misc_Bone_ElfSkull_01
+## Author: shiftclack
+## Version: 0.16.0
+## SavedVariablesPerCharacter: GrimCharacterState
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+GrimConstants.lua
+GrimDebug.lua
+GrimDatabase.lua
+GrimParser.lua
+GrimLogic.lua
+GrimLogicPrediction.lua
+GrimLogicScoring.lua
+GrimLogicDeaths.lua
+GrimLogicState.lua
+GrimStats.lua
+GrimMigration.lua
+GrimSettings.lua
+GrimSetup.lua
+GrimAnnouncements.lua
+GrimUI.lua
+GrimUITooltip.lua
+GrimUIDeathLogList.lua
+GrimUIMinimap.lua
+GrimUIAutocomplete.lua
+GrimUIHelp.lua
+GrimUISetup.lua
+GrimUIMode.lua
+GrimUIRefresh.lua
+GrimUILog.lua
+GrimUISettings.lua
+GrimUIDemo.lua
+GrimDemo.lua
+GrimUIDebug.lua
+GrimUIMainCollapsed.lua
+GrimUIMainRecentDeaths.lua
+GrimUIMainPrediction.lua
+GrimUIMain.lua
+GrimCommands.lua
+GrimController.lua

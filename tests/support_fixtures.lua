@@ -1,12 +1,12 @@
 local FixtureFactory = {}
 
----@param DeathpoolConstants table
----@param DeathpoolDatabase table
+---@param GrimConstants table
+---@param GrimDatabase table
 ---@return table
-function FixtureFactory.Create(DeathpoolConstants, DeathpoolDatabase)
+function FixtureFactory.Create(GrimConstants, GrimDatabase)
 local Fixtures = {}
-local SCORE_RULES = DeathpoolConstants.SCORING
-local DATABASE_DEFAULTS = DeathpoolDatabase.DEFAULTS or {}
+local SCORE_RULES = GrimConstants.SCORING
+local DATABASE_DEFAULTS = GrimDatabase.DEFAULTS or {}
 
 local function cloneValue(value)
     if type(value) ~= "table" then
@@ -261,8 +261,8 @@ end
 
 function Fixtures.addDeathOptions(overrides)
     return normalizeFalseAsNil(merge({
-        maxRecentDeaths = DeathpoolConstants.STORAGE.maxRecentDeaths,
-        maxSuccessfullyPredictedDeaths = DeathpoolConstants.STORAGE.maxSuccessfullyPredictedDeaths,
+        maxRecentDeaths = GrimConstants.STORAGE.maxRecentDeaths,
+        maxSuccessfullyPredictedDeaths = GrimConstants.STORAGE.maxSuccessfullyPredictedDeaths,
     }, overrides))
 end
 

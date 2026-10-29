@@ -19,7 +19,10 @@
   "diagnostics.globals": [
       "CreateFrame",
       "DEFAULT_CHAT_FRAME",
-      "DeathpoolCharacterState",
+      "GrimCharacterState",
+      "SLASH_GRIM1",
+      "SLASH_GRIM2",
+      "SLASH_GRIM3",
       "FauxScrollFrame_GetOffset",
       "FauxScrollFrame_OnVerticalScroll",
       "FauxScrollFrame_Update",

@@ -7,8 +7,8 @@ describe("Addon controller", function()
     local LogicHelperFactory = require("tests.support_logic_helpers")
     local LogicHelpers
     local supportLoader
-    local DeathpoolDatabase
-    local DeathpoolConstants
+    local GrimDatabase
+    local GrimConstants
     local Fixtures
     local DATABASE_DEFAULTS
     local DEMO_RULES
@@ -17,13 +17,13 @@ describe("Addon controller", function()
     before_each(function()
         env = nil
         supportLoader = AddonLoader.Create()
-        supportLoader:LoadThrough("DeathpoolMigration")
-        DeathpoolDatabase = supportLoader.ns.DeathpoolDatabase
-        DeathpoolConstants = supportLoader.ns.DeathpoolConstants
-        Fixtures = FixtureFactory.Create(DeathpoolConstants, DeathpoolDatabase)
-        LogicHelpers = LogicHelperFactory.Create(DeathpoolConstants.SCORING, Fixtures)
-        DATABASE_DEFAULTS = DeathpoolDatabase.DEFAULTS or {}
-        DEMO_RULES = DeathpoolConstants.DEMO or {}
+        supportLoader:LoadThrough("GrimMigration")
+        GrimDatabase = supportLoader.ns.GrimDatabase
+        GrimConstants = supportLoader.ns.GrimConstants
+        Fixtures = FixtureFactory.Create(GrimConstants, GrimDatabase)
+        LogicHelpers = LogicHelperFactory.Create(GrimConstants.SCORING, Fixtures)
+        DATABASE_DEFAULTS = GrimDatabase.DEFAULTS or {}
+        DEMO_RULES = GrimConstants.DEMO or {}
     end)
 
     local function createAddonContext(options)
@@ -56,11 +56,11 @@ describe("Addon controller", function()
     end
 
     local function refreshUiFrames(context)
-        context.Deathpool = context.getMainFrame()
-        context.DeathpoolDebug = context.getDebugFrame()
-        context.DeathpoolLog = context.getLogFrame()
+        context.GrimMainFrame = context.getMainFrame()
+        context.GrimDebug = context.getDebugFrame()
+        context.GrimLog = context.getLogFrame()
         ---@type fun(message: string)
-        local slashHandler = context.env.SlashCmdList.DEATHPOOL
+        local slashHandler = context.env.SlashCmdList.GRIM
         context.runSlash = function(message)
             return slashHandler(message)
         end
@@ -81,7 +81,7 @@ describe("Addon controller", function()
         local dispatchEvent = context.dispatchEvent
 
         if options.load ~= false then
-            dispatchEvent(controller, "ADDON_LOADED", "Deathpool")
+            dispatchEvent(controller, "ADDON_LOADED", "GrimGuesser")
             refreshUiFrames(context)
         end
 
@@ -94,6 +94,30 @@ describe("Addon controller", function()
     end
 
     describe("startup and persisted state", function()
+        it("starts fresh without importing or modifying data", function()
+            local context = createAddonContext()
+            local legacyState = { totalPoints = 9876, hidden = true, minimap = { hide = true } }
+            context.env.DeathpoolCharacterState = legacyState
+
+            context.dispatchEvent(context.controller, "ADDON_LOADED", "Deathpool")
+            assert.is_nil(context.env.GrimCharacterState, "the old addon identity should not initialize Grim Guesser")
+            context.dispatchEvent(context.controller, "ADDON_LOADED", "GrimGuesser")
+
+            local state = context.env.GrimCharacterState
+            assert.equals(getDefault("totalPoints"), state.totalPoints, "the new addon should start with fresh points")
+            assert.equals(getDefault("hidden"), state.hidden, "the new addon should use default visibility")
+            assert.equals(state, context.controller.state, "the controller should bind the new SavedVariables global")
+            assert.is_not.equal(legacyState, state, "the new state should be independent of legacy data")
+
+            state.totalPoints = 42
+            context.dispatchEvent(context.controller, "PLAYER_LOGOUT")
+            local reloaded = createLoadedAddonContext({ state = state })
+            assert.equals(42, reloaded.env.GrimCharacterState.totalPoints, "reload should retain the new addon score")
+            assert.equals(legacyState, context.env.DeathpoolCharacterState, "legacy data should not be deleted or replaced")
+            assert.same({ totalPoints = 9876, hidden = true, minimap = { hide = true } }, legacyState,
+                "legacy data should not be normalized or modified")
+        end)
+
         it("defers UI creation until addon load", function()
             local context = createAddonContext()
 
@@ -105,48 +129,48 @@ describe("Addon controller", function()
 
         it("persists main-window visibility through startup", function()
             local context = createLoadedAddonContext()
-            local Deathpool = context.Deathpool
-            local DeathpoolDebug = context.DeathpoolDebug
+            local GrimMainFrame = context.GrimMainFrame
+            local GrimDebug = context.GrimDebug
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
 
-            assert.is_not_nil(env.DeathpoolCharacterState, "addon load should initialize SavedVariables")
-            assert.equals(getDefault("hidden"), env.DeathpoolCharacterState.hidden, "addon load should honor the configured hidden default")
-            assert.equals(nil, env.DeathpoolCharacterState.debugEnabled, "addon load should not persist debug mode to SavedVariables")
-            assert.equals(false, context.ns.DeathpoolDebugState.IsEnabled(), "addon load should start with debug mode disabled for the session")
-            assert.equals(getDefault("logWindowShown"), env.DeathpoolCharacterState.logWindowShown, "addon load should honor the configured log window default")
-            assert.equals(false, DeathpoolDebug:IsShown(), "addon load should keep the debug window hidden by default")
+            assert.is_not_nil(env.GrimCharacterState, "addon load should initialize SavedVariables")
+            assert.equals(getDefault("hidden"), env.GrimCharacterState.hidden, "addon load should honor the configured hidden default")
+            assert.equals(nil, env.GrimCharacterState.debugEnabled, "addon load should not persist debug mode to SavedVariables")
+            assert.equals(false, context.ns.GrimDebugState.IsEnabled(), "addon load should start with debug mode disabled for the session")
+            assert.equals(getDefault("logWindowShown"), env.GrimCharacterState.logWindowShown, "addon load should honor the configured log window default")
+            assert.equals(false, GrimDebug:IsShown(), "addon load should keep the debug window hidden by default")
 
             assert.equals(true, dispatchEvent(controller, "PLAYER_LOGIN"), "dispatcher should fire registered login events")
             refreshUiFrames(context)
-            assert.equals(env.DeathpoolCharacterState.hidden ~= true, Deathpool:IsShown(), "player login should apply the configured hidden default")
-            assert.equals(false, context.DeathpoolLog:IsShown(), "player login should keep the log window hidden during the intro demo")
+            assert.equals(env.GrimCharacterState.hidden ~= true, GrimMainFrame:IsShown(), "player login should apply the configured hidden default")
+            assert.equals(false, context.GrimLog:IsShown(), "player login should keep the log window hidden during the intro demo")
             assert.equals(
-                Deathpool:IsShown() and env.DeathpoolCharacterState.hasSeenIntroDemo ~= true,
-                getIntroDemoState(Deathpool) ~= nil,
+                GrimMainFrame:IsShown() and env.GrimCharacterState.hasSeenIntroDemo ~= true,
+                getIntroDemoState(GrimMainFrame) ~= nil,
                 "player login should only start intro demo mode when the main window opens and the intro is still unseen"
             )
             assert.equals(
-                Deathpool:IsShown() and env.DeathpoolCharacterState.hasSeenIntroDemo ~= true and "START GAME" or "LOCK IN",
-                Deathpool.lockButton:GetText(),
+                GrimMainFrame:IsShown() and env.GrimCharacterState.hasSeenIntroDemo ~= true and "START GAME" or "LOCK IN",
+                GrimMainFrame.lockButton:GetText(),
                 "player login should only relabel the lock button when the intro is still unseen"
             )
             assert.equals(
-                Deathpool:IsShown() and env.DeathpoolCharacterState.hasSeenIntroDemo ~= true,
-                Deathpool.lockButton:IsEnabled(),
+                GrimMainFrame:IsShown() and env.GrimCharacterState.hasSeenIntroDemo ~= true,
+                GrimMainFrame.lockButton:IsEnabled(),
                 "player login should only enable the lock button as a dismiss action when the intro is still unseen"
             )
-            assert.equals(false, DeathpoolDebug:IsShown(), "player login should keep the debug window hidden while debug mode is off")
+            assert.equals(false, GrimDebug:IsShown(), "player login should keep the debug window hidden while debug mode is off")
 
-            Deathpool:Show()
-            assert.equals(false, env.DeathpoolCharacterState.hidden, "showing the main window should persist it as visible")
+            GrimMainFrame:Show()
+            assert.equals(false, env.GrimCharacterState.hidden, "showing the main window should persist it as visible")
 
-            Deathpool:Hide()
-            assert.equals(true, env.DeathpoolCharacterState.hidden, "hiding the main window should persist it as hidden")
+            GrimMainFrame:Hide()
+            assert.equals(true, env.GrimCharacterState.hidden, "hiding the main window should persist it as hidden")
 
             assert.equals(true, dispatchEvent(controller, "PLAYER_LOGIN"), "dispatcher should keep firing registered events after state changes")
             refreshUiFrames(context)
-            assert.equals(false, Deathpool:IsShown(), "player login should respect a previously hidden main window")
+            assert.equals(false, GrimMainFrame:IsShown(), "player login should respect a previously hidden main window")
         end)
 
         it("reopens incomplete setup", function()
@@ -159,23 +183,23 @@ describe("Addon controller", function()
                 hardcoreDeathChatType = "0",
                 hardcoreDeathsJoined = false,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.equals(false, Deathpool:IsShown(), "incomplete setup should not force open a saved-hidden main window")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "incomplete setup should not show before the main window opens")
+            assert.equals(false, GrimMainFrame:IsShown(), "incomplete setup should not force open a saved-hidden main window")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "incomplete setup should not show before the main window opens")
 
             context.runSlash("show")
-            assert.is_truthy(Deathpool:IsShown(), "show command should open the main window")
-            assert.equals(false, Deathpool.isCollapsed, "first-open setup should expand the main window before showing setup")
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "first main-window open should show incomplete setup")
-            assert.equals(false, env.DeathpoolCharacterState.hidden, "opening the main window should persist it as visible")
-            assert.equals(false, env.DeathpoolCharacterState.collapsed, "first-open setup should persist the expanded main window")
+            assert.is_truthy(GrimMainFrame:IsShown(), "show command should open the main window")
+            assert.equals(false, GrimMainFrame.isCollapsed, "first-open setup should expand the main window before showing setup")
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "first main-window open should show incomplete setup")
+            assert.equals(false, env.GrimCharacterState.hidden, "opening the main window should persist it as visible")
+            assert.equals(false, env.GrimCharacterState.collapsed, "first-open setup should persist the expanded main window")
 
-            Deathpool.setupFrame:Hide()
-            Deathpool:Hide()
+            GrimMainFrame.setupFrame:Hide()
+            GrimMainFrame:Hide()
             context.runSlash("show")
-            assert.is_truthy(Deathpool:IsShown(), "show command should reopen the main window")
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "incomplete setup should show again when the main window reopens")
+            assert.is_truthy(GrimMainFrame:IsShown(), "show command should reopen the main window")
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "incomplete setup should show again when the main window reopens")
         end)
 
         it("opens setup before normal gameplay", function()
@@ -188,26 +212,26 @@ describe("Addon controller", function()
                 hardcoreDeathChatType = "0",
                 hardcoreDeathsJoined = false,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
             context.runSlash("show")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "first main-window open should keep setup hidden during intro demo")
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "first main-window open should start intro demo before setup")
-            assert.equals("START GAME", Deathpool.lockButton:GetText(), "intro demo should relabel the lock button")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "first main-window open should keep setup hidden during intro demo")
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "first main-window open should start intro demo before setup")
+            assert.equals("START GAME", GrimMainFrame.lockButton:GetText(), "intro demo should relabel the lock button")
 
-            Deathpool.lockButton:GetScript("OnClick")()
-            assert.equals(true, env.DeathpoolCharacterState.hasSeenIntroDemo, "starting the game should persist intro demo completion")
-            assert.equals(nil, getIntroDemoState(Deathpool), "starting the game should end intro demo mode")
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "starting the game should show incomplete setup")
+            GrimMainFrame.lockButton:GetScript("OnClick")()
+            assert.equals(true, env.GrimCharacterState.hasSeenIntroDemo, "starting the game should persist intro demo completion")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "starting the game should end intro demo mode")
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "starting the game should show incomplete setup")
 
-            Deathpool.setupFrame.enableDeathAnnouncementsButton:Click()
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "partially complete setup should stay visible")
-            assert.equals(nil, getIntroDemoState(Deathpool), "partially complete setup should not restart the intro demo")
+            GrimMainFrame.setupFrame.enableDeathAnnouncementsButton:Click()
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "partially complete setup should stay visible")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "partially complete setup should not restart the intro demo")
 
-            Deathpool.setupFrame.joinHardcoreDeathsButton:Click()
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "completed setup should hide the setup window")
-            assert.equals(nil, getIntroDemoState(Deathpool), "completed setup should reveal normal gameplay without restarting the demo")
-            assert.equals("LOCK IN", Deathpool.lockButton:GetText(), "completed setup should leave the normal lock action visible")
+            GrimMainFrame.setupFrame.joinHardcoreDeathsButton:Click()
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "completed setup should hide the setup window")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "completed setup should reveal normal gameplay without restarting the demo")
+            assert.equals("LOCK IN", GrimMainFrame.lockButton:GetText(), "completed setup should leave the normal lock action visible")
         end)
 
         it("resumes intro demo before incomplete setup", function()
@@ -220,24 +244,24 @@ describe("Addon controller", function()
                 hardcoreDeathChatType = "0",
                 hardcoreDeathsJoined = false,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
             context.runSlash("show")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "intro demo should keep setup hidden before hiding")
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "first main-window open should start intro demo before hiding")
-            local demoState = getIntroDemoState(Deathpool)
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "intro demo should keep setup hidden before hiding")
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "first main-window open should start intro demo before hiding")
+            local demoState = getIntroDemoState(GrimMainFrame)
 
-            Deathpool:Hide()
-            assert.equals(false, Deathpool:IsShown(), "hiding the main window should hide the main frame")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "hiding the main window should not open setup")
-            assert.equals(false, Deathpool.setupFrame.backdropOverlay:IsShown(), "hiding the main window should keep the setup backdrop hidden")
-            assert.equals(demoState, getIntroDemoState(Deathpool), "hiding the main window should suspend the active intro demo")
-            assert.equals(false, env.DeathpoolCharacterState.hasSeenIntroDemo, "hiding during intro demo should not mark it as seen")
+            GrimMainFrame:Hide()
+            assert.equals(false, GrimMainFrame:IsShown(), "hiding the main window should hide the main frame")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "hiding the main window should not open setup")
+            assert.equals(false, GrimMainFrame.setupFrame.backdropOverlay:IsShown(), "hiding the main window should keep the setup backdrop hidden")
+            assert.equals(demoState, getIntroDemoState(GrimMainFrame), "hiding the main window should suspend the active intro demo")
+            assert.equals(false, env.GrimCharacterState.hasSeenIntroDemo, "hiding during intro demo should not mark it as seen")
 
             context.runSlash("show")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "incomplete setup should remain hidden while the resumed demo is active")
-            assert.equals(demoState, getIntroDemoState(Deathpool), "reopening the main window should resume the same intro demo")
-            assert.equals(true, Deathpool.introDemoAttractPanel:IsShown(), "reopening the main window should restore the demo callout")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "incomplete setup should remain hidden while the resumed demo is active")
+            assert.equals(demoState, getIntroDemoState(GrimMainFrame), "reopening the main window should resume the same intro demo")
+            assert.equals(true, GrimMainFrame.introDemoAttractPanel:IsShown(), "reopening the main window should restore the demo callout")
         end)
 
         it("rebinds UI to the SavedVariables table on load", function()
@@ -278,18 +302,18 @@ describe("Addon controller", function()
             local context = createAddonContext()
             local controller = context.controller
 
-            env.DeathpoolCharacterState = savedDatabase
-            context.dispatchEvent(controller, "ADDON_LOADED", "Deathpool")
+            env.GrimCharacterState = savedDatabase
+            context.dispatchEvent(controller, "ADDON_LOADED", "GrimGuesser")
             refreshUiFrames(context)
 
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.equals(savedDatabase, Deathpool.state, "addon load should rebind the UI to the loaded SavedVariables table")
-            assert.equals(nil, Deathpool.deathRows[1].name, "addon load should not create the removed main-window name column")
-            assert.equals("Savedsource", Deathpool.deathRows[1].sourceName:GetText(), "addon load should populate recent deaths from the loaded SavedVariables table")
+            assert.equals(savedDatabase, GrimMainFrame.state, "addon load should rebind the UI to the loaded SavedVariables table")
+            assert.equals(nil, GrimMainFrame.deathRows[1].name, "addon load should not create the removed main-window name column")
+            assert.equals("Savedsource", GrimMainFrame.deathRows[1].sourceName:GetText(), "addon load should populate recent deaths from the loaded SavedVariables table")
             assert.equals(
                 "Savedsource",
-                context.DeathpoolLog.rows[1].sourceName:GetText(),
+                context.GrimLog.rows[1].sourceName:GetText(),
                 "addon load should populate successful history rows with death sources from the loaded SavedVariables table"
             )
         end)
@@ -302,46 +326,62 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
 
-            assert.is_truthy(Deathpool:IsShown(), "startup should show the main window before the reload simulation")
+            assert.is_truthy(GrimMainFrame:IsShown(), "startup should show the main window before the reload simulation")
             assert.equals(true, dispatchEvent(controller, "PLAYER_LOGOUT"), "logout should dispatch before the reload simulation")
 
-            Deathpool:Hide()
+            GrimMainFrame:Hide()
             assert.equals(
                 false,
-                env.DeathpoolCharacterState.hidden,
+                env.GrimCharacterState.hidden,
                 "shutdown-time hides should not persist the main window as hidden during reload"
             )
 
             local reloadedContext = createLoadedAddonContext({
-                state = env.DeathpoolCharacterState,
+                state = env.GrimCharacterState,
                 login = true,
             })
 
             assert.is_truthy(
-                reloadedContext.Deathpool:IsShown(),
+                reloadedContext.GrimMainFrame:IsShown(),
                 "reload should restore the main window when it was visible before shutdown"
             )
         end)
     end)
 
     describe("debug and commands", function()
+        it("registers all Grim Guesser aliases without the old command", function()
+            local context = createLoadedAddonContext()
+            assert.equals("/gg", env.SLASH_GRIM1)
+            assert.equals("/grimguesser", env.SLASH_GRIM2)
+            assert.equals("/hgg", env.SLASH_GRIM3)
+            assert.is_nil(env.SLASH_DEATHPOOL1)
+            assert.is_nil(env.SlashCmdList.DEATHPOOL)
+
+            local handler = env.SlashCmdList.GRIM
+            assert.is_function(handler, "all registered aliases should have a shared handler")
+            handler("hide")
+            assert.is_false(context.GrimMainFrame:IsShown(), "the shared handler should hide the window")
+            handler("show")
+            assert.is_true(context.GrimMainFrame:IsShown(), "the shared handler should show the window")
+        end)
+
         it("prints debug logs only when debug mode is enabled", function()
             local context = createLoadedAddonContext()
             local chatMessages = context.chatMessages
-            local debugApi = context.ns.DeathpoolDebug
+            local debugApi = context.ns.GrimDebug
 
             assert.equals(0, #chatMessages, "addon load should not print chat announcements")
 
             debugApi.Log("hidden debug message")
             assert.equals(0, #chatMessages, "debug log should stay silent while debug mode is disabled")
 
-            assert.is_function(env.SlashCmdList.DEATHPOOL, "slash command should register the global handler")
-            assert.equals("/deathpool", env.SLASH_DEATHPOOL1, "slash command should register the expected alias")
-            env.SlashCmdList.DEATHPOOL("debug")
+            assert.is_function(env.SlashCmdList.GRIM, "slash command should register the global handler")
+            assert.equals("/gg", env.SLASH_GRIM1, "slash command should register the expected alias")
+            env.SlashCmdList.GRIM("debug")
             local messageCountAfterEnable = #chatMessages
 
             debugApi.Log("visible debug message")
@@ -352,19 +392,19 @@ describe("Addon controller", function()
 
         it("toggles the debug window and printing", function()
             local context = createLoadedAddonContext()
-            local DeathpoolDebug = context.DeathpoolDebug
+            local GrimDebug = context.GrimDebug
             local chatMessages = context.chatMessages
 
-            env.SlashCmdList.DEATHPOOL("debug")
-            assert.equals(true, context.ns.DeathpoolDebugState.IsEnabled(), "debug command should enable shared debug mode")
-            assert.equals(nil, env.DeathpoolCharacterState.debugEnabled, "debug command should not write debug mode to SavedVariables")
-            assert.equals(true, DeathpoolDebug:IsShown(), "debug command should show the debug window while enabled")
+            env.SlashCmdList.GRIM("debug")
+            assert.equals(true, context.ns.GrimDebugState.IsEnabled(), "debug command should enable shared debug mode")
+            assert.equals(nil, env.GrimCharacterState.debugEnabled, "debug command should not write debug mode to SavedVariables")
+            assert.equals(true, GrimDebug:IsShown(), "debug command should show the debug window while enabled")
             assert.is_truthy(string.find(chatMessages[#chatMessages], "enabled", 1, true), "debug command should print enable message")
 
-            env.SlashCmdList.DEATHPOOL("debug")
-            assert.equals(false, context.ns.DeathpoolDebugState.IsEnabled(), "debug command should disable shared debug mode")
-            assert.equals(nil, env.DeathpoolCharacterState.debugEnabled, "debug command should keep SavedVariables free of debug mode state")
-            assert.equals(false, DeathpoolDebug:IsShown(), "debug command should hide the debug window while disabled")
+            env.SlashCmdList.GRIM("debug")
+            assert.equals(false, context.ns.GrimDebugState.IsEnabled(), "debug command should disable shared debug mode")
+            assert.equals(nil, env.GrimCharacterState.debugEnabled, "debug command should keep SavedVariables free of debug mode state")
+            assert.equals(false, GrimDebug:IsShown(), "debug command should hide the debug window while disabled")
             assert.is_truthy(string.find(chatMessages[#chatMessages], "disabled", 1, true), "debug command should announce disablement")
         end)
 
@@ -377,20 +417,20 @@ describe("Addon controller", function()
                 login = true,
             })
 
-            assert.equals(nil, env.DeathpoolCharacterState.debugEnabled, "addon load should clear the legacy saved debug flag")
-            assert.equals(false, context.ns.DeathpoolDebugState.IsEnabled(), "legacy saved debug mode should not re-enable debug for the session")
+            assert.equals(nil, env.GrimCharacterState.debugEnabled, "addon load should clear the legacy saved debug flag")
+            assert.equals(false, context.ns.GrimDebugState.IsEnabled(), "legacy saved debug mode should not re-enable debug for the session")
 
             context.runSlash("debug")
-            assert.equals(true, context.ns.DeathpoolDebugState.IsEnabled(), "debug command should still enable runtime debug mode")
+            assert.equals(true, context.ns.GrimDebugState.IsEnabled(), "debug command should still enable runtime debug mode")
 
             local reloadedContext = createLoadedAddonContext({
-                state = env.DeathpoolCharacterState,
+                state = env.GrimCharacterState,
                 login = true,
             })
 
             assert.equals(false, reloadedContext.getDebugFrame():IsShown(), "reload should bring the debug window back hidden")
-            assert.equals(false, reloadedContext.ns.DeathpoolDebugState.IsEnabled(), "reload should reset debug mode for the new session")
-            assert.equals(nil, env.DeathpoolCharacterState.debugEnabled, "reload should keep SavedVariables free of the debug flag")
+            assert.equals(false, reloadedContext.ns.GrimDebugState.IsEnabled(), "reload should reset debug mode for the new session")
+            assert.equals(nil, env.GrimCharacterState.debugEnabled, "reload should keep SavedVariables free of the debug flag")
         end)
 
         it("reports a demo-command error while collapsed", function()
@@ -401,16 +441,16 @@ describe("Addon controller", function()
                     collapsed = true,
                 }),
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local chatMessages = context.chatMessages
 
-            Deathpool.introDemoController:Dismiss()
-            Deathpool:Hide()
+            GrimMainFrame.introDemoController:Dismiss()
+            GrimMainFrame:Hide()
 
             context.runSlash("demo")
-            assert.equals(true, Deathpool.isCollapsed, "demo command should leave the main window collapsed")
-            assert.equals(false, Deathpool:IsShown(), "demo command should not show the main window while collapsed")
-            assert.equals(nil, getIntroDemoState(Deathpool), "demo command should not start the intro preview while collapsed")
+            assert.equals(true, GrimMainFrame.isCollapsed, "demo command should leave the main window collapsed")
+            assert.equals(false, GrimMainFrame:IsShown(), "demo command should not show the main window while collapsed")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "demo command should not start the intro preview while collapsed")
             assert.is_string(chatMessages[#chatMessages], "demo command should explain that the window must be expanded first")
             assert.matches(
                 "Expand the main window",
@@ -443,8 +483,8 @@ describe("Addon controller", function()
 
             context.runSlash("debug")
             context.runSlash("resetintro")
-            assert.equals(false, env.DeathpoolCharacterState.hasSeenIntroDemo, "resetintro command should re-enable the intro demo")
-            assert.equals(false, env.DeathpoolCharacterState.hasSeenFirstRun, "resetintro command should re-enable the first-run prompt")
+            assert.equals(false, env.GrimCharacterState.hasSeenIntroDemo, "resetintro command should re-enable the intro demo")
+            assert.equals(false, env.GrimCharacterState.hasSeenFirstRun, "resetintro command should re-enable the first-run prompt")
             assert.is_string(chatMessages[#chatMessages], "resetintro command should confirm that the introduction was enabled")
             assert.matches(
                 "Introduction enabled",
@@ -488,7 +528,7 @@ describe("Addon controller", function()
 
             context.runSlash("debug")
             context.runSlash("reset")
-            assert.equals(true, env.DeathpoolCharacterState.hidden, "reset command should hide the main window when it runs")
+            assert.equals(true, env.GrimCharacterState.hidden, "reset command should hide the main window when it runs")
         end)
 
         describe("slash command routing", function()
@@ -500,23 +540,23 @@ describe("Addon controller", function()
                     }),
                     login = true,
                 })
-                local Deathpool = context.Deathpool
-                local DeathpoolLog = context.DeathpoolLog
+                local GrimMainFrame = context.GrimMainFrame
+                local GrimLog = context.GrimLog
 
                 context.runSlash("  hide  ")
-                assert.equals(false, Deathpool:IsShown(), "hide command should hide the main window")
-                assert.equals(true, env.DeathpoolCharacterState.hidden, "hide command should persist the main window as hidden")
+                assert.equals(false, GrimMainFrame:IsShown(), "hide command should hide the main window")
+                assert.equals(true, env.GrimCharacterState.hidden, "hide command should persist the main window as hidden")
 
                 context.runSlash("show")
-                assert.is_truthy(Deathpool:IsShown(), "show command should show the main window")
-                assert.equals(false, env.DeathpoolCharacterState.hidden, "show command should persist the main window as visible")
+                assert.is_truthy(GrimMainFrame:IsShown(), "show command should show the main window")
+                assert.equals(false, env.GrimCharacterState.hidden, "show command should persist the main window as visible")
 
                 context.runSlash("toggle")
-                assert.equals(false, Deathpool:IsShown(), "toggle command should hide the main window when it starts visible")
+                assert.equals(false, GrimMainFrame:IsShown(), "toggle command should hide the main window when it starts visible")
 
                 context.runSlash("")
-                assert.is_truthy(Deathpool:IsShown(), "empty command should behave like toggle and show the main window")
-                assert.equals(false, DeathpoolLog:IsShown(), "showing the main window again should keep the default hidden log window closed")
+                assert.is_truthy(GrimMainFrame:IsShown(), "empty command should behave like toggle and show the main window")
+                assert.equals(false, GrimLog:IsShown(), "showing the main window again should keep the default hidden log window closed")
             end)
 
             it("toggles the history window", function()
@@ -527,15 +567,15 @@ describe("Addon controller", function()
                     }),
                     login = true,
                 })
-                local DeathpoolLog = context.DeathpoolLog
+                local GrimLog = context.GrimLog
 
                 context.runSlash("log")
-                assert.is_truthy(DeathpoolLog:IsShown(), "log command should show the history window when it starts hidden")
-                assert.equals(true, env.DeathpoolCharacterState.logWindowShown, "log command should persist the desired open state")
+                assert.is_truthy(GrimLog:IsShown(), "log command should show the history window when it starts hidden")
+                assert.equals(true, env.GrimCharacterState.logWindowShown, "log command should persist the desired open state")
 
                 context.runSlash("log")
-                assert.equals(false, DeathpoolLog:IsShown(), "log command should hide the history window after it was opened")
-                assert.equals(false, env.DeathpoolCharacterState.logWindowShown, "log command should persist the desired closed state")
+                assert.equals(false, GrimLog:IsShown(), "log command should hide the history window after it was opened")
+                assert.equals(false, env.GrimCharacterState.logWindowShown, "log command should persist the desired closed state")
             end)
 
             it("opens setup from visible, collapsed, and hidden states", function()
@@ -546,22 +586,22 @@ describe("Addon controller", function()
                     }),
                     login = true,
                 })
-                local Deathpool = context.Deathpool
+                local GrimMainFrame = context.GrimMainFrame
 
                 context.runSlash("setup")
-                assert.is_truthy(Deathpool.setupFrame:IsShown(), "setup command should show the setup window")
+                assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "setup command should show the setup window")
 
-                context.DeathpoolUI.SetWindowCollapsed(Deathpool, env.DeathpoolCharacterState, true)
+                context.GrimUI.SetWindowCollapsed(GrimMainFrame, env.GrimCharacterState, true)
                 context.runSlash("setup")
-                assert.equals(false, Deathpool.isCollapsed, "setup command should expand the main window before showing setup")
-                assert.is_truthy(Deathpool.setupFrame:IsShown(), "setup command should keep setup visible after expanding the main window")
+                assert.equals(false, GrimMainFrame.isCollapsed, "setup command should expand the main window before showing setup")
+                assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "setup command should keep setup visible after expanding the main window")
 
-                Deathpool:Hide()
-                assert.equals(false, Deathpool.setupFrame:IsShown(), "hiding the main window should close slash-opened setup")
-                assert.equals(false, Deathpool.setupFrame.backdropOverlay:IsShown(), "hiding the main window should clear slash-opened setup backdrop")
+                GrimMainFrame:Hide()
+                assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "hiding the main window should close slash-opened setup")
+                assert.equals(false, GrimMainFrame.setupFrame.backdropOverlay:IsShown(), "hiding the main window should clear slash-opened setup backdrop")
                 context.runSlash("setup")
-                assert.is_truthy(Deathpool:IsShown(), "setup command should show the main window")
-                assert.is_truthy(Deathpool.setupFrame:IsShown(), "setup command should keep the setup window shown after showing main")
+                assert.is_truthy(GrimMainFrame:IsShown(), "setup command should show the main window")
+                assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "setup command should keep the setup window shown after showing main")
             end)
 
             it("toggles debug, combat, and minimap settings", function()
@@ -579,18 +619,18 @@ describe("Addon controller", function()
                 local chatMessages = context.chatMessages
 
                 context.runSlash("debug")
-                assert.equals(true, context.ns.DeathpoolDebugState.IsEnabled(), "debug command should reach the debug toggle branch")
+                assert.equals(true, context.ns.GrimDebugState.IsEnabled(), "debug command should reach the debug toggle branch")
 
                 context.runSlash("showincombat")
-                assert.equals(false, env.DeathpoolCharacterState.showInCombat, "showincombat command should reach the combat setting branch")
+                assert.equals(false, env.GrimCharacterState.showInCombat, "showincombat command should reach the combat setting branch")
 
                 context.runSlash("minimap")
-                assert.equals(true, env.DeathpoolCharacterState.minimap.hide, "minimap command should hide the minimap icon")
+                assert.equals(true, env.GrimCharacterState.minimap.hide, "minimap command should hide the minimap icon")
                 assert.is_string(chatMessages[#chatMessages], "minimap command should announce disablement")
                 assert.matches("Minimap icon disabled", chatMessages[#chatMessages], 1, true, "minimap command should announce disablement")
 
                 context.runSlash("minimap")
-                assert.equals(false, env.DeathpoolCharacterState.minimap.hide, "minimap command should show the minimap icon again")
+                assert.equals(false, env.GrimCharacterState.minimap.hide, "minimap command should show the minimap icon again")
                 assert.is_string(chatMessages[#chatMessages], "minimap command should announce enablement")
                 assert.matches("Minimap icon enabled", chatMessages[#chatMessages], 1, true, "minimap command should announce enablement")
             end)
@@ -610,15 +650,15 @@ describe("Addon controller", function()
                     }),
                     login = true,
                 })
-                local Deathpool = context.Deathpool
+                local GrimMainFrame = context.GrimMainFrame
                 local chatMessages = context.chatMessages
 
                 context.runSlash("resetui")
 
-                assert.equals(false, Deathpool.isCollapsed, "resetui command should disable the mini log")
-                assert.equals(false, env.DeathpoolCharacterState.collapsed, "resetui command should persist the expanded state")
-                assert.equals(nil, env.DeathpoolCharacterState.windowPosition, "resetui command should clear the saved main window position")
-                assert.same({ "CENTER" }, Deathpool.points[1], "resetui command should center the main window")
+                assert.equals(false, GrimMainFrame.isCollapsed, "resetui command should disable the mini log")
+                assert.equals(false, env.GrimCharacterState.collapsed, "resetui command should persist the expanded state")
+                assert.equals(nil, env.GrimCharacterState.windowPosition, "resetui command should clear the saved main window position")
+                assert.same({ "CENTER" }, GrimMainFrame.points[1], "resetui command should center the main window")
                 assert.is_string(chatMessages[#chatMessages], "resetui command should announce completion")
                 assert.matches("Main window position reset", chatMessages[#chatMessages], 1, true, "resetui command should announce completion")
             end)
@@ -676,13 +716,13 @@ describe("Addon controller", function()
                     }),
                     login = true,
                 })
-                local Deathpool = context.Deathpool
+                local GrimMainFrame = context.GrimMainFrame
                 local chatMessages = context.chatMessages
 
                 context.runSlash("debug")
 
                 context.runSlash("demo")
-                assert.is_not_nil(getIntroDemoState(Deathpool), "demo command should reach the intro demo branch")
+                assert.is_not_nil(getIntroDemoState(GrimMainFrame), "demo command should reach the intro demo branch")
 
                 local messageCountBeforeHelp = #chatMessages
                 context.runSlash("help")
@@ -691,16 +731,16 @@ describe("Addon controller", function()
                 local sawSummaryHelp = false
                 local sawResetUIHelp = false
                 for messageIndex = messageCountBeforeHelp + 1, #chatMessages do
-                    if string.find(chatMessages[messageIndex], "/deathpool resetintro", 1, true) then
+                    if string.find(chatMessages[messageIndex], "/grimguesser resetintro", 1, true) then
                         sawIntroHelp = true
                     end
-                    if string.find(chatMessages[messageIndex], "/deathpool setup", 1, true) then
+                    if string.find(chatMessages[messageIndex], "/grimguesser setup", 1, true) then
                         sawSetupHelp = true
                     end
-                    if string.find(chatMessages[messageIndex], "/deathpool summary", 1, true) then
+                    if string.find(chatMessages[messageIndex], "/grimguesser summary", 1, true) then
                         sawSummaryHelp = true
                     end
-                    if string.find(chatMessages[messageIndex], "/deathpool resetui", 1, true) then
+                    if string.find(chatMessages[messageIndex], "/grimguesser resetui", 1, true) then
                         sawResetUIHelp = true
                     end
                 end
@@ -730,16 +770,16 @@ describe("Addon controller", function()
                 context.runSlash("debugdeath definitely not a death message")
                 assert.equals(messageCountBeforeBadDebugDeath + 1, #chatMessages, "debugdeath with bad text should print the no-match message")
 
-                local recentDeathCountBeforeTestDeath = #(env.DeathpoolCharacterState.recentDeaths or {})
+                local recentDeathCountBeforeTestDeath = #(env.GrimCharacterState.recentDeaths or {})
                 context.runSlash("testdeath")
                 assert.equals(
                     recentDeathCountBeforeTestDeath + 1,
-                    #env.DeathpoolCharacterState.recentDeaths,
+                    #env.GrimCharacterState.recentDeaths,
                     "testdeath command should add a synthetic death row"
                 )
                 assert.equals(
                     "Defias Pillager",
-                    env.DeathpoolCharacterState.recentDeaths[#env.DeathpoolCharacterState.recentDeaths].server,
+                    env.GrimCharacterState.recentDeaths[#env.GrimCharacterState.recentDeaths].server,
                     "testdeath command should persist the current server on stored death rows"
                 )
             end)
@@ -749,23 +789,23 @@ describe("Addon controller", function()
     describe("intro demo", function()
         it("starts and dismisses the intro demo on first show", function()
             local context = createLoadedAddonContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.equals(getDefault("hasSeenIntroDemo"), env.DeathpoolCharacterState.hasSeenIntroDemo, "addon load should honor the configured intro demo default")
-            assert.equals(nil, getIntroDemoState(Deathpool), "addon load should not enter intro demo mode before the main window opens")
+            assert.equals(getDefault("hasSeenIntroDemo"), env.GrimCharacterState.hasSeenIntroDemo, "addon load should honor the configured intro demo default")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "addon load should not enter intro demo mode before the main window opens")
 
-            Deathpool:Show()
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "first show should activate the intro demo")
-            assert.equals("START GAME", Deathpool.lockButton:GetText(), "first show should relabel the lock button to start game")
-            assert.equals("0", Deathpool.totalPointsValue:GetText(), "first show should begin the scripted demo at zero score")
+            GrimMainFrame:Show()
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "first show should activate the intro demo")
+            assert.equals("START GAME", GrimMainFrame.lockButton:GetText(), "first show should relabel the lock button to start game")
+            assert.equals("0", GrimMainFrame.totalPointsValue:GetText(), "first show should begin the scripted demo at zero score")
 
-            Deathpool.lockButton:GetScript("OnClick")()
-            assert.equals(true, env.DeathpoolCharacterState.hasSeenIntroDemo, "dismissing the intro demo should persist completion")
-            assert.equals(nil, getIntroDemoState(Deathpool), "dismissing the intro demo should restore live data")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "starting the game should skip setup when it is already complete")
-            assert.equals("LOCK IN", Deathpool.lockButton:GetText(), "dismissing the intro demo should restore the lock button label")
-            assert.equals(false, context.DeathpoolLog:IsShown(), "dismissing the intro demo should keep the default hidden log window closed")
-            assert.equals("0", Deathpool.totalPointsValue:GetText(), "dismissing the intro demo should return to the empty live score")
+            GrimMainFrame.lockButton:GetScript("OnClick")()
+            assert.equals(true, env.GrimCharacterState.hasSeenIntroDemo, "dismissing the intro demo should persist completion")
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "dismissing the intro demo should restore live data")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "starting the game should skip setup when it is already complete")
+            assert.equals("LOCK IN", GrimMainFrame.lockButton:GetText(), "dismissing the intro demo should restore the lock button label")
+            assert.equals(false, context.GrimLog:IsShown(), "dismissing the intro demo should keep the default hidden log window closed")
+            assert.equals("0", GrimMainFrame.totalPointsValue:GetText(), "dismissing the intro demo should return to the empty live score")
         end)
 
         it("reopens the intro preview from the demo command", function()
@@ -775,18 +815,18 @@ describe("Addon controller", function()
                     hasSeenIntroDemo = true,
                 }),
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool.introDemoController:Dismiss()
-            Deathpool:Hide()
+            GrimMainFrame.introDemoController:Dismiss()
+            GrimMainFrame:Hide()
 
             context.runSlash("demo")
-            assert.equals(true, Deathpool:IsShown(), "demo command should show the main window")
-            assert.equals(false, env.DeathpoolCharacterState.hidden, "demo command should persist the main window as visible")
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "demo command should restore the intro preview state")
-            assert.equals("START GAME", Deathpool.lockButton:GetText(), "demo command should relabel the lock button to start game")
-            assert.equals("0", Deathpool.totalPointsValue:GetText(), "demo command should restart the scripted demo from zero score")
-            assert.equals(true, env.DeathpoolCharacterState.hasSeenIntroDemo, "demo command should not reset the completion flag")
+            assert.equals(true, GrimMainFrame:IsShown(), "demo command should show the main window")
+            assert.equals(false, env.GrimCharacterState.hidden, "demo command should persist the main window as visible")
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "demo command should restore the intro preview state")
+            assert.equals("START GAME", GrimMainFrame.lockButton:GetText(), "demo command should relabel the lock button to start game")
+            assert.equals("0", GrimMainFrame.totalPointsValue:GetText(), "demo command should restart the scripted demo from zero score")
+            assert.equals(true, env.GrimCharacterState.hasSeenIntroDemo, "demo command should not reset the completion flag")
         end)
 
         it("opens incomplete setup after a replayed demo starts", function()
@@ -798,50 +838,50 @@ describe("Addon controller", function()
                 hardcoreDeathChatType = "0",
                 hardcoreDeathsJoined = false,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
             context.runSlash("demo")
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "demo command should start the replayed intro demo")
-            assert.equals(false, Deathpool.setupFrame:IsShown(), "replayed demo should hide incomplete setup while active")
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "demo command should start the replayed intro demo")
+            assert.equals(false, GrimMainFrame.setupFrame:IsShown(), "replayed demo should hide incomplete setup while active")
 
-            Deathpool.lockButton:GetScript("OnClick")()
-            assert.equals(nil, getIntroDemoState(Deathpool), "starting the game should end the replayed demo")
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "starting the game from a replayed demo should show incomplete setup")
+            GrimMainFrame.lockButton:GetScript("OnClick")()
+            assert.equals(nil, getIntroDemoState(GrimMainFrame), "starting the game should end the replayed demo")
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "starting the game from a replayed demo should show incomplete setup")
         end)
 
         it("does not complete the intro demo when the main window hides", function()
             local context = createLoadedAddonContext()
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            Deathpool:Show()
-            Deathpool.introDemoController:Show()
+            GrimMainFrame:Show()
+            GrimMainFrame.introDemoController:Show()
 
-            Deathpool:Hide()
+            GrimMainFrame:Hide()
 
-            assert.equals("START GAME", Deathpool.lockButton:GetText(), "hiding the main window should preserve the demo action")
-            assert.equals(true, getIntroDemoState(Deathpool) ~= nil, "hiding the main window should preserve the intro demo")
-            assert.equals(false, env.DeathpoolCharacterState.hasSeenIntroDemo, "hiding the main window should not mark the intro demo as seen")
+            assert.equals("START GAME", GrimMainFrame.lockButton:GetText(), "hiding the main window should preserve the demo action")
+            assert.equals(true, getIntroDemoState(GrimMainFrame) ~= nil, "hiding the main window should preserve the intro demo")
+            assert.equals(false, env.GrimCharacterState.hasSeenIntroDemo, "hiding the main window should not mark the intro demo as seen")
         end)
     end)
 
     describe("window state and combat", function()
         it("closes the log when the main window hides", function()
             local context = createLoadedAddonContext()
-            local Deathpool = context.Deathpool
-            local DeathpoolLog = context.DeathpoolLog
+            local GrimMainFrame = context.GrimMainFrame
+            local GrimLog = context.GrimLog
 
-            Deathpool.collapsedWindowStates = {
+            GrimMainFrame.collapsedWindowStates = {
                 logFrame = true,
             }
-            DeathpoolLog:Show()
-            Deathpool:Show()
+            GrimLog:Show()
+            GrimMainFrame:Show()
 
-            Deathpool:Hide()
+            GrimMainFrame:Hide()
 
-            assert.equals(false, DeathpoolLog:IsShown(), "hiding the main window should close the log window")
+            assert.equals(false, GrimLog:IsShown(), "hiding the main window should close the log window")
             assert.equals(
                 false,
-                env.DeathpoolCharacterState.logWindowShown,
+                env.GrimCharacterState.logWindowShown,
                 "hiding the main window should preserve the desired hidden log window state"
             )
         end)
@@ -855,28 +895,28 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
-            local DeathpoolLog = context.DeathpoolLog
+            local GrimMainFrame = context.GrimMainFrame
+            local GrimLog = context.GrimLog
 
             context.runSlash("log")
-            assert.is_truthy(DeathpoolLog:IsShown(), "log command should show the log before setup opens")
-            assert.equals(true, env.DeathpoolCharacterState.logWindowShown, "log command should persist the desired open state")
+            assert.is_truthy(GrimLog:IsShown(), "log command should show the log before setup opens")
+            assert.equals(true, env.GrimCharacterState.logWindowShown, "log command should persist the desired open state")
 
             context.runSlash("setup")
 
-            assert.is_truthy(Deathpool.setupFrame:IsShown(), "setup command should show setup")
-            assert.equals(false, DeathpoolLog:IsShown(), "setup should close the log window")
+            assert.is_truthy(GrimMainFrame.setupFrame:IsShown(), "setup command should show setup")
+            assert.equals(false, GrimLog:IsShown(), "setup should close the log window")
             assert.equals(
                 true,
-                env.DeathpoolCharacterState.logWindowShown,
+                env.GrimCharacterState.logWindowShown,
                 "setup should not persist a closed desired log state"
             )
 
-            context.DeathpoolUI.SetLogWindowShown(Deathpool, env.DeathpoolCharacterState, false)
+            context.GrimUI.SetLogWindowShown(GrimMainFrame, env.GrimCharacterState, false)
             context.runSlash("log")
 
-            assert.equals(true, env.DeathpoolCharacterState.logWindowShown, "log command should still update desired log state")
-            assert.equals(false, DeathpoolLog:IsShown(), "setup should keep the log hidden when log is toggled open")
+            assert.equals(true, env.GrimCharacterState.logWindowShown, "log command should still update desired log state")
+            assert.equals(false, GrimLog:IsShown(), "setup should keep the log hidden when log is toggled open")
         end)
 
         it("restores an open log window after reload", function()
@@ -890,8 +930,8 @@ describe("Addon controller", function()
                 login = true,
             })
 
-            assert.is_truthy(context.Deathpool:IsShown(), "startup should show the main window when it is not hidden")
-            assert.is_truthy(context.DeathpoolLog:IsShown(), "startup should restore the log window when its saved preference is open")
+            assert.is_truthy(context.GrimMainFrame:IsShown(), "startup should show the main window when it is not hidden")
+            assert.is_truthy(context.GrimLog:IsShown(), "startup should restore the log window when its saved preference is open")
         end)
 
         it("restores the saved history filter after reload", function()
@@ -919,10 +959,10 @@ describe("Addon controller", function()
                 login = true,
             })
 
-            assert.equals(false, context.DeathpoolLog.showSuccessfulOnly, "startup should restore the saved all-history filter mode")
-            assert.equals("All Predictions", context.DeathpoolLog.logSubtitle:GetText(), "startup should restore the saved all-history subtitle")
-            assert.equals("SHOW SUCCESS ONLY", context.DeathpoolLog.filterButton:GetText(), "startup should restore the alternate filter action")
-            assert.equals("Savedallsource", context.DeathpoolLog.rows[1].sourceName:GetText(), "startup should restore all-history rows as sources when that mode was saved")
+            assert.equals(false, context.GrimLog.showSuccessfulOnly, "startup should restore the saved all-history filter mode")
+            assert.equals("All Predictions", context.GrimLog.logSubtitle:GetText(), "startup should restore the saved all-history subtitle")
+            assert.equals("SHOW SUCCESS ONLY", context.GrimLog.filterButton:GetText(), "startup should restore the alternate filter action")
+            assert.equals("Savedallsource", context.GrimLog.rows[1].sourceName:GetText(), "startup should restore all-history rows as sources when that mode was saved")
         end)
 
         it("restores the saved collapsed-window position", function()
@@ -940,12 +980,12 @@ describe("Addon controller", function()
                     },
                 }),
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.equals(350, Deathpool.width, "addon load should restore the minimized width")
-            assert.equals(100, Deathpool.height, "addon load should restore the minimized height")
-            assert.equals(-180, Deathpool.points[1][4], "addon load should restore the saved minimized x offset")
-            assert.equals(72, Deathpool.points[1][5], "addon load should restore the saved minimized y offset")
+            assert.equals(350, GrimMainFrame.width, "addon load should restore the minimized width")
+            assert.equals(100, GrimMainFrame.height, "addon load should restore the minimized height")
+            assert.equals(-180, GrimMainFrame.points[1][4], "addon load should restore the saved minimized x offset")
+            assert.equals(72, GrimMainFrame.points[1][5], "addon load should restore the saved minimized y offset")
         end)
 
         it("restores recent deaths when expanding a reloaded collapsed window", function()
@@ -965,24 +1005,24 @@ describe("Addon controller", function()
                     },
                 }),
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.equals(true, Deathpool.isCollapsed, "startup should restore the saved mini-log state")
-            assert.equals(false, Deathpool.recentDeathsFrame:IsShown(), "collapsed startup should hide the expanded recent death pane")
-            assert.equals("Murloc", Deathpool.deathRows[1].sourceName:GetText(), "collapsed startup should still populate expanded death row data")
+            assert.equals(true, GrimMainFrame.isCollapsed, "startup should restore the saved mini-log state")
+            assert.equals(false, GrimMainFrame.recentDeathsFrame:IsShown(), "collapsed startup should hide the expanded recent death pane")
+            assert.equals("Murloc", GrimMainFrame.deathRows[1].sourceName:GetText(), "collapsed startup should still populate expanded death row data")
 
-            context.DeathpoolUI.SetWindowCollapsed(Deathpool, env.DeathpoolCharacterState, false)
+            context.GrimUI.SetWindowCollapsed(GrimMainFrame, env.GrimCharacterState, false)
 
-            assert.equals(false, Deathpool.isCollapsed, "expanding the mini-log should restore the expanded state")
-            assert.equals(true, Deathpool.recentDeathsFrame:IsShown(), "expanding the mini-log should show the expanded recent death pane")
-            assert.equals(true, Deathpool.deathRows[1]:IsShown(), "expanding the mini-log should show populated death rows")
-            assert.equals("Murloc", Deathpool.deathRows[1].sourceName:GetText(), "expanded death rows should show saved recent deaths")
+            assert.equals(false, GrimMainFrame.isCollapsed, "expanding the mini-log should restore the expanded state")
+            assert.equals(true, GrimMainFrame.recentDeathsFrame:IsShown(), "expanding the mini-log should show the expanded recent death pane")
+            assert.equals(true, GrimMainFrame.deathRows[1]:IsShown(), "expanding the mini-log should show populated death rows")
+            assert.equals("Murloc", GrimMainFrame.deathRows[1].sourceName:GetText(), "expanded death rows should show saved recent deaths")
         end)
 
         it("defaults combat auto-minimize to enabled", function()
             createLoadedAddonContext()
 
-            assert.equals(getDefault("showInCombat"), env.DeathpoolCharacterState.showInCombat, "addon load should honor the configured show-in-combat default")
+            assert.equals(getDefault("showInCombat"), env.GrimCharacterState.showInCombat, "addon load should honor the configured show-in-combat default")
         end)
 
         it("collapses a visible expanded window on combat", function()
@@ -995,14 +1035,14 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
 
-            assert.equals(false, Deathpool.isCollapsed, "window should begin expanded for the show-in-combat test")
+            assert.equals(false, GrimMainFrame.isCollapsed, "window should begin expanded for the show-in-combat test")
             assert.equals(true, dispatchEvent(controller, "PLAYER_REGEN_DISABLED"), "combat event should dispatch when registered")
-            assert.equals(true, Deathpool.isCollapsed, "entering combat should collapse the visible main window when show-in-combat is disabled")
-            assert.equals(true, env.DeathpoolCharacterState.collapsed, "entering combat should persist the collapsed state")
+            assert.equals(true, GrimMainFrame.isCollapsed, "entering combat should collapse the visible main window when show-in-combat is disabled")
+            assert.equals(true, env.GrimCharacterState.collapsed, "entering combat should persist the collapsed state")
         end)
 
         it("keeps the window visible in combat when enabled", function()
@@ -1015,18 +1055,18 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local chatMessages = context.chatMessages
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
 
             context.runSlash("showincombat")
-            assert.equals(true, env.DeathpoolCharacterState.showInCombat, "showincombat command should enable showing the window in combat")
+            assert.equals(true, env.GrimCharacterState.showInCombat, "showincombat command should enable showing the window in combat")
             assert.is_string(chatMessages[#chatMessages], "showincombat should announce enablement")
             assert.matches("Show in combat enabled", chatMessages[#chatMessages], 1, true, "showincombat should announce enablement")
 
             assert.equals(true, dispatchEvent(controller, "PLAYER_REGEN_DISABLED"), "combat event should still dispatch after toggling the setting")
-            assert.equals(false, Deathpool.isCollapsed, "entering combat should not collapse the main window while show-in-combat is enabled")
+            assert.equals(false, GrimMainFrame.isCollapsed, "entering combat should not collapse the main window while show-in-combat is enabled")
         end)
 
         it("closes and persists main-window state on escape", function()
@@ -1037,12 +1077,12 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.is_truthy(Deathpool:IsShown(), "startup should show the main window before escape is pressed")
+            assert.is_truthy(GrimMainFrame:IsShown(), "startup should show the main window before escape is pressed")
             assert.equals(true, context.pressEscape(), "escape should close the special main window")
-            assert.equals(false, Deathpool:IsShown(), "escape should hide the main window")
-            assert.equals(true, env.DeathpoolCharacterState.hidden, "escape should persist the main window as hidden")
+            assert.equals(false, GrimMainFrame:IsShown(), "escape should hide the main window")
+            assert.equals(true, env.GrimCharacterState.hidden, "escape should persist the main window as hidden")
         end)
 
         it("does not close a collapsed main window on escape", function()
@@ -1054,13 +1094,13 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
 
-            assert.is_truthy(Deathpool:IsShown(), "startup should show the collapsed main window before escape is pressed")
-            assert.equals(true, Deathpool.isCollapsed, "startup should keep the main window collapsed for the escape exclusion test")
+            assert.is_truthy(GrimMainFrame:IsShown(), "startup should show the collapsed main window before escape is pressed")
+            assert.equals(true, GrimMainFrame.isCollapsed, "startup should keep the main window collapsed for the escape exclusion test")
             assert.equals(false, context.pressEscape(), "escape should not close the collapsed main window")
-            assert.is_truthy(Deathpool:IsShown(), "escape should leave the collapsed main window visible")
-            assert.equals(false, env.DeathpoolCharacterState.hidden, "escape should not persist the collapsed main window as hidden")
+            assert.is_truthy(GrimMainFrame:IsShown(), "escape should leave the collapsed main window visible")
+            assert.equals(false, env.GrimCharacterState.hidden, "escape should not persist the collapsed main window as hidden")
         end)
     end)
 
@@ -1078,22 +1118,22 @@ describe("Addon controller", function()
                 formatLargeNumber = formatFiveDigitTestScore,
                 login = true,
             })
-            local Deathpool = context.Deathpool
+            local GrimMainFrame = context.GrimMainFrame
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
             local sendChatMessage = context.sendChatMessage
 
-            assert.equals("12,345", Deathpool.totalPointsValue:GetText(), "startup should show the pre-death running score")
-            assert.equals("12,345", Deathpool.collapsedPointsValue:GetText(), "startup should show the pre-death collapsed score")
+            assert.equals("12,345", GrimMainFrame.totalPointsValue:GetText(), "startup should show the pre-death running score")
+            assert.equals("12,345", GrimMainFrame.collapsedPointsValue:GetText(), "startup should show the pre-death collapsed score")
 
             assert.equals(true, dispatchEvent(controller, "PLAYER_DEAD"), "player death should dispatch when registered")
-            assert.equals(12345, env.DeathpoolCharacterState.totalPoints, "player death should preserve the stored final score")
-            assert.equals("12,345", Deathpool.totalPointsValue:GetText(), "player death should leave the main score visible")
-            assert.equals("12,345", Deathpool.collapsedPointsValue:GetText(), "player death should leave the collapsed score visible")
+            assert.equals(12345, env.GrimCharacterState.totalPoints, "player death should preserve the stored final score")
+            assert.equals("12,345", GrimMainFrame.totalPointsValue:GetText(), "player death should leave the main score visible")
+            assert.equals("12,345", GrimMainFrame.collapsedPointsValue:GetText(), "player death should leave the collapsed score visible")
             assert.is_truthy(string.find(context.chatMessages[#context.chatMessages], "score", 1, true), "player death should print the final score")
             assert.spy(sendChatMessage).was_called(1)
             assert.spy(sendChatMessage).was_called_with(
-                "[Hardcore Death Pool] Final score: 12,345",
+                "[Grim Guesser] Final score: 12,345",
                 "GUILD"
             )
         end)
@@ -1184,7 +1224,7 @@ describe("Addon controller", function()
             assert.equals(true, dispatchEvent(controller, "PLAYER_LEVEL_UP", 10), "player level up should dispatch when registered")
             assert.spy(sendChatMessage).was_called(1)
             assert.spy(sendChatMessage).was_called_with(
-                "[Hardcore Death Pool] HarnessPlayer has reached level 10! Their score is 12,345",
+                "[Grim Guesser] HarnessPlayer has reached level 10! Their score is 12,345",
                 "GUILD"
             )
 
@@ -1192,7 +1232,7 @@ describe("Addon controller", function()
             dispatchEvent(controller, "PLAYER_LEVEL_UP", 60)
             assert.spy(sendChatMessage).was_called(1)
             assert.spy(sendChatMessage).was_called_with(
-                "[Hardcore Death Pool] HarnessPlayer has reached level 60! Their score is 12,345",
+                "[Grim Guesser] HarnessPlayer has reached level 60! Their score is 12,345",
                 "GUILD"
             )
         end)
@@ -1279,23 +1319,23 @@ describe("Addon controller", function()
 
             assert.equals(
                 getDefault("announcements").enabled,
-                env.DeathpoolCharacterState.announcements.enabled,
+                env.GrimCharacterState.announcements.enabled,
                 "addon load should honor the configured guild announcement default"
             )
             assert.equals(
                 getDefault("announcements").announceScoreOnDeath,
-                env.DeathpoolCharacterState.announcements.announceScoreOnDeath,
+                env.GrimCharacterState.announcements.announceScoreOnDeath,
                 "addon load should honor the configured death announcement default"
             )
 
             assert.equals(
                 getDefault("announcements").enabled,
-                context.ns.DeathpoolUISettings.guildAnnouncementsEnabledCheckbox:GetChecked(),
+                context.ns.GrimUISettings.guildAnnouncementsEnabledCheckbox:GetChecked(),
                 "settings panel should show the configured guild announcement default"
             )
             assert.equals(
                 getDefault("announcements").enabled,
-                context.ns.DeathpoolUISettings.announceDeathToGuildCheckbox:IsEnabled(),
+                context.ns.GrimUISettings.announceDeathToGuildCheckbox:IsEnabled(),
                 "settings panel should enable guild announcement options from the configured default"
             )
         end)
@@ -1316,8 +1356,8 @@ describe("Addon controller", function()
             })
 
             local category = env.Settings.registeredAddOnCategories[#env.Settings.registeredAddOnCategories]
-            ---@type DeathpoolUISettingsPanelModule
-            local settingsModule = context.ns.DeathpoolUISettings
+            ---@type GrimUISettingsPanelModule
+            local settingsModule = context.ns.GrimUISettings
             local function getRelativeToAndXOffset(region)
                 local _, relativeTo, _, x = region:GetPoint(1)
                 return relativeTo, x
@@ -1325,8 +1365,8 @@ describe("Addon controller", function()
 
             assert.is_not_nil(category, "settings panel should register an addon category")
             assert.is_not_nil(category.frame, "settings panel should register a category frame")
-            assert.equals("Deathpool", category.frame.name, "settings panel should register the Deathpool category")
-            assert.equals("Hardcore Death Pool", category.name, "settings panel should register the full addon display name")
+            assert.equals("Grim Guesser", category.frame.name, "settings panel should register the Grim Guesser category")
+            assert.equals("Grim Guesser", category.name, "settings panel should register the full addon display name")
 
             category.frame:Show()
             assert.equals(
@@ -1355,7 +1395,7 @@ describe("Addon controller", function()
                 "settings panel should enable level-up announcements when guild announcements are enabled"
             )
             assert.equals(
-                "Announce score every " .. DeathpoolConstants.ANNOUNCEMENTS.levelUpFrequency .. " levels",
+                "Announce score every " .. GrimConstants.ANNOUNCEMENTS.levelUpFrequency .. " levels",
                 settingsModule.announceScoreOnLevelUpCheckbox.label:GetText(),
                 "settings panel should build the level-up label from the announcement frequency constant"
             )
@@ -1401,8 +1441,8 @@ describe("Addon controller", function()
                 }),
             })
 
-            ---@type DeathpoolUISettingsPanelModule
-            local settingsModule = context.ns.DeathpoolUISettings
+            ---@type GrimUISettingsPanelModule
+            local settingsModule = context.ns.GrimUISettings
             local reboundState = Fixtures.addonDatabase({
                 announcements = {
                     enabled = true,
@@ -1417,34 +1457,34 @@ describe("Addon controller", function()
 
             settingsModule.Initialize({
                 GetDisableMinimapIcon = function()
-                    return DeathpoolDatabase.GetMinimapHidden(reboundState)
+                    return GrimDatabase.GetMinimapHidden(reboundState)
                 end,
                 GetDeathAnnouncementToGuild = function()
-                    return DeathpoolDatabase.GetAnnounceDeathToGuild(reboundState)
+                    return GrimDatabase.GetAnnounceDeathToGuild(reboundState)
                 end,
                 GetGuildAnnouncementsEnabled = function()
-                    return DeathpoolDatabase.GetGuildAnnouncementsEnabled(reboundState)
+                    return GrimDatabase.GetGuildAnnouncementsEnabled(reboundState)
                 end,
                 GetAnnounceScoreOnLevelUp = function()
-                    return DeathpoolDatabase.GetAnnounceScoreOnLevelUp(reboundState)
+                    return GrimDatabase.GetAnnounceScoreOnLevelUp(reboundState)
                 end,
                 GetShowInCombat = function()
-                    return DeathpoolDatabase.GetShowInCombat(reboundState)
+                    return GrimDatabase.GetShowInCombat(reboundState)
                 end,
                 SetDisableMinimapIcon = function(disabled)
-                    return DeathpoolDatabase.SetMinimapHidden(reboundState, disabled)
+                    return GrimDatabase.SetMinimapHidden(reboundState, disabled)
                 end,
                 SetDeathAnnouncementToGuild = function(enabled)
-                    return DeathpoolDatabase.SetAnnounceDeathToGuild(reboundState, enabled)
+                    return GrimDatabase.SetAnnounceDeathToGuild(reboundState, enabled)
                 end,
                 SetGuildAnnouncementsEnabled = function(enabled)
-                    return DeathpoolDatabase.SetGuildAnnouncementsEnabled(reboundState, enabled)
+                    return GrimDatabase.SetGuildAnnouncementsEnabled(reboundState, enabled)
                 end,
                 SetAnnounceScoreOnLevelUp = function(enabled)
-                    return DeathpoolDatabase.SetAnnounceScoreOnLevelUp(reboundState, enabled)
+                    return GrimDatabase.SetAnnounceScoreOnLevelUp(reboundState, enabled)
                 end,
                 SetShowInCombat = function(enabled)
-                    return DeathpoolDatabase.SetShowInCombat(reboundState, enabled)
+                    return GrimDatabase.SetShowInCombat(reboundState, enabled)
                 end,
             })
 
@@ -1504,8 +1544,8 @@ describe("Addon controller", function()
                     }),
                 })
 
-                ---@type DeathpoolUISettingsPanelModule
-                settingsModule = context.ns.DeathpoolUISettings
+                ---@type GrimUISettingsPanelModule
+                settingsModule = context.ns.GrimUISettings
                 settingsModule.categoryFrame:Show()
             end)
 
@@ -1514,7 +1554,7 @@ describe("Addon controller", function()
                 settingsModule.guildAnnouncementsEnabledCheckbox:Click()
                 assert.equals(
                     true,
-                    env.DeathpoolCharacterState.announcements.enabled,
+                    env.GrimCharacterState.announcements.enabled,
                     "settings guild announcements checkbox should persist the enabled state"
                 )
                 assert.equals(
@@ -1536,7 +1576,7 @@ describe("Addon controller", function()
                 settingsModule.guildAnnouncementsEnabledCheckbox:Click()
                 assert.equals(
                     false,
-                    env.DeathpoolCharacterState.announcements.enabled,
+                    env.GrimCharacterState.announcements.enabled,
                     "settings guild announcements checkbox should persist the disabled state"
                 )
                 assert.equals(
@@ -1563,7 +1603,7 @@ describe("Addon controller", function()
                 settingsModule.showInCombatCheckbox:Click()
                 assert.equals(
                     true,
-                    env.DeathpoolCharacterState.showInCombat,
+                    env.GrimCharacterState.showInCombat,
                     "settings show-in-combat checkbox should persist the enabled state"
                 )
 
@@ -1571,7 +1611,7 @@ describe("Addon controller", function()
                 settingsModule.showInCombatCheckbox:Click()
                 assert.equals(
                     false,
-                    env.DeathpoolCharacterState.showInCombat,
+                    env.GrimCharacterState.showInCombat,
                     "settings show-in-combat checkbox should persist the disabled state"
                 )
             end)
@@ -1584,7 +1624,7 @@ describe("Addon controller", function()
                 settingsModule.announceDeathToGuildCheckbox:Click()
                 assert.equals(
                     true,
-                    env.DeathpoolCharacterState.announcements.announceScoreOnDeath,
+                    env.GrimCharacterState.announcements.announceScoreOnDeath,
                     "settings death announcement checkbox should persist the enabled state"
                 )
 
@@ -1592,7 +1632,7 @@ describe("Addon controller", function()
                 settingsModule.announceDeathToGuildCheckbox:Click()
                 assert.equals(
                     false,
-                    env.DeathpoolCharacterState.announcements.announceScoreOnDeath,
+                    env.GrimCharacterState.announcements.announceScoreOnDeath,
                     "settings death announcement checkbox should persist the disabled state"
                 )
             end)
@@ -1605,7 +1645,7 @@ describe("Addon controller", function()
                 settingsModule.announceScoreOnLevelUpCheckbox:Click()
                 assert.equals(
                     true,
-                    env.DeathpoolCharacterState.announcements.announceScoreOnLevelUp,
+                    env.GrimCharacterState.announcements.announceScoreOnLevelUp,
                     "settings level-up announcement checkbox should persist the enabled state"
                 )
 
@@ -1613,7 +1653,7 @@ describe("Addon controller", function()
                 settingsModule.announceScoreOnLevelUpCheckbox:Click()
                 assert.equals(
                     false,
-                    env.DeathpoolCharacterState.announcements.announceScoreOnLevelUp,
+                    env.GrimCharacterState.announcements.announceScoreOnLevelUp,
                     "settings level-up announcement checkbox should persist the disabled state"
                 )
             end)
@@ -1626,22 +1666,22 @@ describe("Addon controller", function()
                 settingsModule.disableMinimapIconCheckbox:Click()
                 assert.equals(
                     true,
-                    env.DeathpoolCharacterState.minimap.hide,
+                    env.GrimCharacterState.minimap.hide,
                     "settings minimap checkbox should persist the disabled state"
                 )
                 assert.spy(libDBIcon.Hide).was_called(1)
-                assert.spy(libDBIcon.Hide).was_called_with(match.is_ref(libDBIcon), "Deathpool")
+                assert.spy(libDBIcon.Hide).was_called_with(match.is_ref(libDBIcon), "GrimGuesser")
                 assert.spy(libDBIcon.Show).was_not_called()
 
                 settingsModule.disableMinimapIconCheckbox:SetChecked(false)
                 settingsModule.disableMinimapIconCheckbox:Click()
                 assert.equals(
                     false,
-                    env.DeathpoolCharacterState.minimap.hide,
+                    env.GrimCharacterState.minimap.hide,
                     "settings minimap checkbox should persist the enabled state"
                 )
                 assert.spy(libDBIcon.Show).was_called(1)
-                assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "Deathpool")
+                assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "GrimGuesser")
                 assert.spy(libDBIcon.Hide).was_called(1)
             end)
         end)
@@ -1694,7 +1734,7 @@ describe("Addon controller", function()
                 ),
                 "channel chat messages should dispatch through the addon frame"
             )
-            assert.equals(0, #env.DeathpoolCharacterState.recentDeaths, "non-hardcoredeaths channels should not insert deaths")
+            assert.equals(0, #env.GrimCharacterState.recentDeaths, "non-hardcoredeaths channels should not insert deaths")
         end)
 
         it("routes HardcoreDeaths messages through parser, logic, and UI", function()
@@ -1715,10 +1755,10 @@ describe("Addon controller", function()
                 }),
                 login = true,
             })
-            local Deathpool = context.Deathpool
-            local DeathpoolDebug = context.DeathpoolDebug
-            local DeathpoolLog = context.DeathpoolLog
-            local DeathpoolLogic = context.ns.DeathpoolLogic
+            local GrimMainFrame = context.GrimMainFrame
+            local GrimDebug = context.GrimDebug
+            local GrimLog = context.GrimLog
+            local GrimLogic = context.ns.GrimLogic
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
             local waitingPromptMinDuration = DEMO_RULES.waitingForFirstDeathMinDurationSeconds
@@ -1741,16 +1781,16 @@ describe("Addon controller", function()
                 ),
                 "HardcoreDeaths channel messages should dispatch through the addon frame"
             )
-            assert.equals(1, #env.DeathpoolCharacterState.recentDeaths, "death event should insert a recent death row")
-            assert.equals(1, #env.DeathpoolCharacterState.deathHistory, "death event should insert a history death row")
-            assert.equals(1, #env.DeathpoolCharacterState.successfullyPredictedDeaths, "death event should record successful predictions")
+            assert.equals(1, #env.GrimCharacterState.recentDeaths, "death event should insert a recent death row")
+            assert.equals(1, #env.GrimCharacterState.deathHistory, "death event should insert a history death row")
+            assert.equals(1, #env.GrimCharacterState.successfullyPredictedDeaths, "death event should record successful predictions")
 
-            local storedDeath = env.DeathpoolCharacterState.recentDeaths[1]
-            local historyDeath = env.DeathpoolCharacterState.deathHistory[1]
-            local awardedPoints = DeathpoolLogic.GetStoredDeathAwardedPoints(storedDeath)
-            local comboMultiplier = DeathpoolLogic.GetStoredDeathComboMultiplierValue(storedDeath)
-            local totalMultiplier = DeathpoolLogic.GetStoredDeathMultiplierValue(storedDeath)
-            local basePoints = DeathpoolLogic.GetStoredDeathBasePoints(storedDeath)
+            local storedDeath = env.GrimCharacterState.recentDeaths[1]
+            local historyDeath = env.GrimCharacterState.deathHistory[1]
+            local awardedPoints = GrimLogic.GetStoredDeathAwardedPoints(storedDeath)
+            local comboMultiplier = GrimLogic.GetStoredDeathComboMultiplierValue(storedDeath)
+            local totalMultiplier = GrimLogic.GetStoredDeathMultiplierValue(storedDeath)
+            local basePoints = GrimLogic.GetStoredDeathBasePoints(storedDeath)
             local formattedAwardedPoints = env.FormatLargeNumber(awardedPoints)
 
             assert.equals("Drakedog", storedDeath.name, "parser flow should persist the parsed player name")
@@ -1759,50 +1799,50 @@ describe("Addon controller", function()
             assert.equals("Elwynn Forest", storedDeath.zone, "parser flow should persist the parsed zone")
             assert.equals("Defias Pillager", storedDeath.server, "insert flow should persist the current server name")
             assert.equals(true, storedDeath.matchedPrediction, "evaluation flow should mark the stored death as matched")
-            assert.equals(DeathpoolLogic.GetStoredDeathBasePoints(storedDeath), storedDeath.points, "evaluation flow should persist the matched base points")
+            assert.equals(GrimLogic.GetStoredDeathBasePoints(storedDeath), storedDeath.points, "evaluation flow should persist the matched base points")
             assert.equals(awardedPoints, storedDeath.awardedPoints, "evaluation flow should persist the awarded points")
-            assert.equals(awardedPoints, env.DeathpoolCharacterState.totalPoints, "evaluation flow should roll awarded points into the total score")
-            assert.equals(1, env.DeathpoolCharacterState.correctPredictionStreak, "evaluation flow should increment the current streak")
-            assert.equals(1, env.DeathpoolCharacterState.longestPredictionStreak, "evaluation flow should update the longest streak")
+            assert.equals(awardedPoints, env.GrimCharacterState.totalPoints, "evaluation flow should roll awarded points into the total score")
+            assert.equals(1, env.GrimCharacterState.correctPredictionStreak, "evaluation flow should increment the current streak")
+            assert.equals(1, env.GrimCharacterState.longestPredictionStreak, "evaluation flow should update the longest streak")
             assert.equals(true, historyDeath.matchedPrediction, "history insert should keep the evaluation result")
             assert.equals("elwynn forest", historyDeath.prediction.elements.zone, "history insert should preserve the locked prediction")
             assert.equals(true, storedDeath.sameZoneBonusApplied, "same-zone deaths should persist the applied same-zone bonus flag")
 
-            assert.equals(true, Deathpool.waitingPromptText:IsShown(), "ui refresh should keep the waiting prompt visible until the minimum intro duration completes")
-            assert.equals(false, Deathpool.deathRows[1]:IsShown(), "ui refresh should keep the recent deaths list hidden during the waiting prompt minimum duration")
+            assert.equals(true, GrimMainFrame.waitingPromptText:IsShown(), "ui refresh should keep the waiting prompt visible until the minimum intro duration completes")
+            assert.equals(false, GrimMainFrame.deathRows[1]:IsShown(), "ui refresh should keep the recent deaths list hidden during the waiting prompt minimum duration")
 
             ---@diagnostic disable-next-line: need-check-nil
-            Deathpool:GetScript("OnUpdate")(Deathpool, waitingPromptMinDuration)
-            assert.equals("Hogger", Deathpool.deathRows[1].sourceName:GetText(), "ui refresh should show the parsed death in the recent deaths list after the waiting prompt minimum duration")
-            assert.equals(nil, Deathpool.deathRows[1].multiplier, "ui refresh should omit the removed main-window combo column")
-            assert.equals(tostring(awardedPoints), Deathpool.deathRows[1].awardedPoints:GetText(), "ui refresh should show the evaluated total points after the waiting prompt minimum duration")
-            assert.equals(formattedAwardedPoints, Deathpool.totalPointsValue:GetText(), "ui refresh should show the updated total score")
-            assert.equals("1", Deathpool.currentStreakValue:GetText(), "ui refresh should show the updated current streak")
-            assert.equals("Hogger", Deathpool.collapsedLogFrame.rows[1].sourceName:GetText(), "ui refresh should update the collapsed death log")
-            assert.equals(tostring(awardedPoints), Deathpool.collapsedLogFrame.rows[1].awardedPoints:GetText(), "ui refresh should update the collapsed death log points")
-            assert.equals(formattedAwardedPoints, Deathpool.collapsedPointsValue:GetText(), "ui refresh should update the collapsed score")
-            assert.equals("Hogger", DeathpoolLog.rows[1].sourceName:GetText(), "ui refresh should update the successful history log with the death source")
-            assert.equals(tostring(awardedPoints), DeathpoolLog.rows[1].awardedPoints:GetText(), "ui refresh should update history totals")
-            assert.equals("Drakedog", DeathpoolDebug.detailValues.name:GetText(), "ui refresh should update the debug detail view")
-            assert.equals(tostring(awardedPoints), DeathpoolDebug.detailValues.totalPoints:GetText(), "ui refresh should update debug total points")
-            assert.equals("1", DeathpoolDebug.detailValues.currentPredictionStreak:GetText(), "ui refresh should update debug current streak")
-            assert.is_string(DeathpoolDebug.detailValues.lockedPrediction:GetText(), "ui refresh should update the debug locked prediction summary")
+            GrimMainFrame:GetScript("OnUpdate")(GrimMainFrame, waitingPromptMinDuration)
+            assert.equals("Hogger", GrimMainFrame.deathRows[1].sourceName:GetText(), "ui refresh should show the parsed death in the recent deaths list after the waiting prompt minimum duration")
+            assert.equals(nil, GrimMainFrame.deathRows[1].multiplier, "ui refresh should omit the removed main-window combo column")
+            assert.equals(tostring(awardedPoints), GrimMainFrame.deathRows[1].awardedPoints:GetText(), "ui refresh should show the evaluated total points after the waiting prompt minimum duration")
+            assert.equals(formattedAwardedPoints, GrimMainFrame.totalPointsValue:GetText(), "ui refresh should show the updated total score")
+            assert.equals("1", GrimMainFrame.currentStreakValue:GetText(), "ui refresh should show the updated current streak")
+            assert.equals("Hogger", GrimMainFrame.collapsedLogFrame.rows[1].sourceName:GetText(), "ui refresh should update the collapsed death log")
+            assert.equals(tostring(awardedPoints), GrimMainFrame.collapsedLogFrame.rows[1].awardedPoints:GetText(), "ui refresh should update the collapsed death log points")
+            assert.equals(formattedAwardedPoints, GrimMainFrame.collapsedPointsValue:GetText(), "ui refresh should update the collapsed score")
+            assert.equals("Hogger", GrimLog.rows[1].sourceName:GetText(), "ui refresh should update the successful history log with the death source")
+            assert.equals(tostring(awardedPoints), GrimLog.rows[1].awardedPoints:GetText(), "ui refresh should update history totals")
+            assert.equals("Drakedog", GrimDebug.detailValues.name:GetText(), "ui refresh should update the debug detail view")
+            assert.equals(tostring(awardedPoints), GrimDebug.detailValues.totalPoints:GetText(), "ui refresh should update debug total points")
+            assert.equals("1", GrimDebug.detailValues.currentPredictionStreak:GetText(), "ui refresh should update debug current streak")
+            assert.is_string(GrimDebug.detailValues.lockedPrediction:GetText(), "ui refresh should update the debug locked prediction summary")
             assert.matches(
                 "Level 10-19, source Hogger, or zone Elwynn Forest",
-                DeathpoolDebug.detailValues.lockedPrediction:GetText(),
+                GrimDebug.detailValues.lockedPrediction:GetText(),
                 1,
                 true,
                 "ui refresh should update the debug locked prediction summary"
             )
-            assert.equals(tostring(basePoints), DeathpoolDebug.detailValues.basePoints:GetText(), "ui refresh should update debug base points")
-            assert.equals("x" .. tostring(comboMultiplier), DeathpoolDebug.detailValues.comboMultiplier:GetText(), "ui refresh should update debug combo bonus")
-            assert.equals("x" .. tostring(totalMultiplier), DeathpoolDebug.detailValues.multiplier:GetText(), "ui refresh should update debug total multiplier")
+            assert.equals(tostring(basePoints), GrimDebug.detailValues.basePoints:GetText(), "ui refresh should update debug base points")
+            assert.equals("x" .. tostring(comboMultiplier), GrimDebug.detailValues.comboMultiplier:GetText(), "ui refresh should update debug combo bonus")
+            assert.equals("x" .. tostring(totalMultiplier), GrimDebug.detailValues.multiplier:GetText(), "ui refresh should update debug total multiplier")
             assert.equals(
                 storedDeath.sourceMessage,
-                DeathpoolDebug.detailValues.sourceMessage:GetText(),
+                GrimDebug.detailValues.sourceMessage:GetText(),
                 "ui refresh should update the debug raw message edit box"
             )
-            assert.equals(tostring(awardedPoints), DeathpoolDebug.detailValues.awardedPoints:GetText(), "ui refresh should update debug awarded points")
+            assert.equals(tostring(awardedPoints), GrimDebug.detailValues.awardedPoints:GetText(), "ui refresh should update debug awarded points")
         end)
 
         it("skips same-zone bonuses without a matching zone", function()
@@ -1827,7 +1867,7 @@ describe("Addon controller", function()
             })
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
-            local DeathpoolLogic = context.ns.DeathpoolLogic
+            local GrimLogic = context.ns.GrimLogic
             local sourcePoints = LogicHelpers.getExpectedBasePoints({ source = true })
             local expectedAwardedPoints = sourcePoints * LogicHelpers.getDisplayMultiplier(1, 1)
             local rawMessage = "[Drakedog] has been slain by Hogger in Westfall! They were level 12"
@@ -1850,16 +1890,16 @@ describe("Addon controller", function()
                 "HardcoreDeaths channel messages should still dispatch when the death is outside the player's current zone"
             )
 
-            local storedDeath = env.DeathpoolCharacterState.recentDeaths[1]
+            local storedDeath = env.GrimCharacterState.recentDeaths[1]
             assert.equals(false, storedDeath.sameZoneBonusApplied, "different-zone deaths should not persist the same-zone bonus flag")
             assert.equals(
                 0,
-                DeathpoolLogic.GetStoredDeathSameZoneBonusPoints(storedDeath),
+                GrimLogic.GetStoredDeathSameZoneBonusPoints(storedDeath),
                 "different-zone deaths should not award same-zone bonus points"
             )
             assert.equals(
                 expectedAwardedPoints,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(storedDeath),
+                GrimLogic.GetStoredDeathAwardedPoints(storedDeath),
                 "different-zone deaths should keep the normal awarded score"
             )
         end)
@@ -1886,9 +1926,9 @@ describe("Addon controller", function()
             })
             local dispatchEvent = context.dispatchEvent
             local controller = context.controller
-            local DeathpoolLogic = context.ns.DeathpoolLogic
+            local GrimLogic = context.ns.GrimLogic
             local sourcePoints = LogicHelpers.getExpectedBasePoints({ source = true })
-            local sameZonePoints = context.ns.DeathpoolConstants.SCORING.sameZoneFixedBonusPoints
+            local sameZonePoints = context.ns.GrimConstants.SCORING.sameZoneFixedBonusPoints
             local expectedMultiplier = LogicHelpers.getDisplayMultiplier(1, 1)
             local rawMessage = "[Drakedog] has been slain by Hogger in Elwynn Forest! They were level 12"
 
@@ -1910,16 +1950,16 @@ describe("Addon controller", function()
                 "HardcoreDeaths channel messages should still dispatch when same-zone bonus comes from a non-zone prediction"
             )
 
-            local storedDeath = env.DeathpoolCharacterState.recentDeaths[1]
+            local storedDeath = env.GrimCharacterState.recentDeaths[1]
             assert.equals(true, storedDeath.sameZoneBonusApplied, "same-zone deaths should persist the bonus flag even without a zone prediction")
             assert.equals(
                 sameZonePoints,
-                DeathpoolLogic.GetStoredDeathSameZoneBonusPoints(storedDeath),
+                GrimLogic.GetStoredDeathSameZoneBonusPoints(storedDeath),
                 "same-zone deaths should award bonus points even when zone was not predicted"
             )
             assert.equals(
                 (sourcePoints + sameZonePoints) * expectedMultiplier,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(storedDeath),
+                GrimLogic.GetStoredDeathAwardedPoints(storedDeath),
                 "same-zone bonus should add into the total for non-zone predictions"
             )
         end)

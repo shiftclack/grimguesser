@@ -2,10 +2,10 @@ local assert = require("luassert")
 local LogicContext = require("tests.support_logic_context")
 
 describe("SavedVariables migrations", function()
-    local DeathpoolMigration
+    local GrimMigration
 
     before_each(function()
-        DeathpoolMigration = LogicContext.Create().DeathpoolMigration
+        GrimMigration = LogicContext.Create().GrimMigration
     end)
 
     describe("Apply", function()
@@ -13,12 +13,12 @@ describe("SavedVariables migrations", function()
             local database = {
                 databaseVersion = 0,
             }
-            local returnedDatabase = DeathpoolMigration.Apply(database)
+            local returnedDatabase = GrimMigration.Apply(database)
 
             assert.is_table(returnedDatabase, "migration should still return a database table")
             assert.equals(database, returnedDatabase, "migration should preserve table identity")
             assert.equals(
-                DeathpoolMigration.CURRENT_VERSION,
+                GrimMigration.CURRENT_VERSION,
                 database.databaseVersion,
                 "production migration should stamp a version zero database with the current version"
             )
@@ -45,7 +45,7 @@ describe("SavedVariables migrations", function()
                 end,
             }
 
-            local returnedDatabase = DeathpoolMigration.ApplyVersions(database, 3, testMigrations)
+            local returnedDatabase = GrimMigration.ApplyVersions(database, 3, testMigrations)
 
             assert.equals(database, returnedDatabase, "migration should return the existing database table")
             assert.equals("one,two,three", table.concat(database.applied, ","), "migrations should run in version order")
@@ -70,7 +70,7 @@ describe("SavedVariables migrations", function()
                 end,
             }
 
-            DeathpoolMigration.ApplyVersions(database, 3, testMigrations)
+            GrimMigration.ApplyVersions(database, 3, testMigrations)
 
             assert.equals("two,three", table.concat(database.applied, ","), "migration should skip completed versions")
             assert.equals(3, database.databaseVersion, "migration should apply every remaining version")
@@ -90,7 +90,7 @@ describe("SavedVariables migrations", function()
                 end,
             }
 
-            local returnedDatabase = DeathpoolMigration.ApplyVersions(database, 2, testMigrations)
+            local returnedDatabase = GrimMigration.ApplyVersions(database, 2, testMigrations)
 
             assert.equals(database, returnedDatabase, "current database migration should preserve table identity")
             assert.equals(2, database.databaseVersion, "current database migration should preserve its version")
@@ -103,7 +103,7 @@ describe("SavedVariables migrations", function()
                 marker = "unchanged",
             }
 
-            local returnedDatabase = DeathpoolMigration.ApplyVersions(database, 2, {})
+            local returnedDatabase = GrimMigration.ApplyVersions(database, 2, {})
 
             assert.equals(database, returnedDatabase, "migration should preserve a newer database table")
             assert.equals(3, database.databaseVersion, "migration should not downgrade a newer database")
@@ -125,7 +125,7 @@ describe("SavedVariables migrations", function()
             }
 
             local succeeded, migrationError = pcall(function()
-                DeathpoolMigration.ApplyVersions(database, 2, testMigrations)
+                GrimMigration.ApplyVersions(database, 2, testMigrations)
             end)
 
             assert.is_false(succeeded, "migration errors should propagate to the caller")

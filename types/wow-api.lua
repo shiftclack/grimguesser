@@ -1,36 +1,36 @@
 ---@meta
 
----@class DeathpoolNamespace
----@field DeathpoolAnnouncements table
----@field DeathpoolCommands table
----@field DeathpoolConstants table
----@field DeathpoolDatabase table
----@field DeathpoolDebug table
----@field DeathpoolDebugState table
----@field DeathpoolDemo table
----@field DeathpoolLogic table
----@field DeathpoolMigration table
----@field DeathpoolParser table
----@field DeathpoolSettings table
----@field DeathpoolSetup table
----@field DeathpoolStats DeathpoolStats
----@field DeathpoolUI table
----@field DeathpoolUIAutocomplete table
----@field DeathpoolUIDeathLogList table
----@field DeathpoolUIDebug table
----@field DeathpoolUIDemo table
----@field DeathpoolUIHelp table
----@field DeathpoolUILog table
----@field DeathpoolUIMain table
----@field DeathpoolUIMainCollapsed table
----@field DeathpoolUIMainPrediction table
----@field DeathpoolUIMainRecentDeaths table
----@field DeathpoolUIRefresh table
----@field DeathpoolUISettings table
----@field DeathpoolUISetup table
----@field DeathpoolUITooltip table
----@field DeathpoolUIMinimap table
----@field DeathpoolUIMode table
+---@class GrimNamespace
+---@field GrimAnnouncements table
+---@field GrimCommands table
+---@field GrimConstants table
+---@field GrimDatabase table
+---@field GrimDebug table
+---@field GrimDebugState table
+---@field GrimDemo table
+---@field GrimLogic table
+---@field GrimMigration table
+---@field GrimParser table
+---@field GrimSettings table
+---@field GrimSetup table
+---@field GrimStats GrimStats
+---@field GrimUI table
+---@field GrimUIAutocomplete table
+---@field GrimUIDeathLogList table
+---@field GrimUIDebug table
+---@field GrimUIDemo table
+---@field GrimUIHelp table
+---@field GrimUILog table
+---@field GrimUIMain table
+---@field GrimUIMainCollapsed table
+---@field GrimUIMainPrediction table
+---@field GrimUIMainRecentDeaths table
+---@field GrimUIRefresh table
+---@field GrimUISettings table
+---@field GrimUISetup table
+---@field GrimUITooltip table
+---@field GrimUIMinimap table
+---@field GrimUIMode table
 
 ---@class ColorInfo
 ---@field r number
@@ -59,8 +59,8 @@
 ---@class LibDBIconApi
 ---@field Hide fun(self: LibDBIconApi, name: string)
 ---@field Show fun(self: LibDBIconApi, name: string)
----@field Refresh fun(self: LibDBIconApi, name: string, database: DeathpoolMinimapSettings)
----@field Register fun(self: LibDBIconApi, name: string, dataObject: MinimapLauncher, database: DeathpoolMinimapSettings)
+---@field Refresh fun(self: LibDBIconApi, name: string, database: GrimMinimapSettings)
+---@field Register fun(self: LibDBIconApi, name: string, dataObject: MinimapLauncher, database: GrimMinimapSettings)
 
 ---@class SettingsCategory
 ---@field ID number|string|nil

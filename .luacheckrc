@@ -15,8 +15,10 @@ files["tests/**"] = {
 
 -- Writable addon-owned globals.
 globals = {
-   "DeathpoolCharacterState",
-   "SLASH_DEATHPOOL1",
+   "GrimCharacterState",
+   "SLASH_GRIM1",
+   "SLASH_GRIM2",
+   "SLASH_GRIM3",
 }
 
 -- Read-only WoW and Lua APIs.
@@ -47,7 +49,7 @@ read_globals = {
    SlashCmdList = {
       read_only = false,
       fields = {
-         DEATHPOOL = { read_only = false },
+         GRIM = { read_only = false },
       },
    },
 }

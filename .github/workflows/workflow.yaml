@@ -38,4 +38,4 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
         run: |
           make dist-ci
-          release-upload.sh "${REPOSITORY}" "${TAG}" "Deathpool-${TAG}.zip" "dist/Deathpool.zip"
+          release-upload.sh "${REPOSITORY}" "${TAG}" "GrimGuesser-${TAG}.zip" "dist/GrimGuesser.zip"

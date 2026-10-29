@@ -5,9 +5,9 @@ local FixtureFactory = require("tests.support_fixtures")
 ---@return table
 local function Create()
     local loadedLogic = LogicContext.Create({ zoneText = "Test UI Zone" })
-    local DeathpoolLogic = loadedLogic.DeathpoolLogic
-    local Fixtures = FixtureFactory.Create(loadedLogic.DeathpoolConstants, loadedLogic.DeathpoolDatabase)
-    local SCORE_RULES = loadedLogic.DeathpoolConstants.SCORING
+    local GrimLogic = loadedLogic.GrimLogic
+    local Fixtures = FixtureFactory.Create(loadedLogic.GrimConstants, loadedLogic.GrimDatabase)
+    local SCORE_RULES = loadedLogic.GrimConstants.SCORING
 
     ---@return string
     local function buildLevelPointsSummary()
@@ -24,13 +24,13 @@ local function Create()
             .. "."
     end
 
-    ---@param prediction DeathpoolPrediction
+    ---@param prediction GrimPrediction
     ---@return string
     local function formatPredictionPreview(prediction)
-        local elements = DeathpoolLogic.GetPredictionElements(prediction) or {}
-        local score = DeathpoolLogic.ScorePreview(
+        local elements = GrimLogic.GetPredictionElements(prediction) or {}
+        local score = GrimLogic.ScorePreview(
             elements,
-            DeathpoolLogic.GetPreviewStreak()
+            GrimLogic.GetPreviewStreak()
         )
 
         return string.format(
@@ -41,15 +41,15 @@ local function Create()
         )
     end
 
-    ---@param death DeathpoolDeath
+    ---@param death GrimDeath
     ---@return table<string, string>
     local function formatStoredDeathScore(death)
-        local basePoints = DeathpoolLogic.GetStoredDeathBasePoints(death)
-        local sameZoneBonusPoints = DeathpoolLogic.GetStoredDeathSameZoneBonusPoints(death)
-        local comboMultiplier = DeathpoolLogic.GetStoredDeathComboMultiplierValue(death)
-        local streakMultiplier = DeathpoolLogic.GetStoredDeathStreakMultiplierValue(death)
-        local comboSum = DeathpoolLogic.GetStoredDeathMultiplierValue(death)
-        local awardedPoints = DeathpoolLogic.GetStoredDeathAwardedPoints(death)
+        local basePoints = GrimLogic.GetStoredDeathBasePoints(death)
+        local sameZoneBonusPoints = GrimLogic.GetStoredDeathSameZoneBonusPoints(death)
+        local comboMultiplier = GrimLogic.GetStoredDeathComboMultiplierValue(death)
+        local streakMultiplier = GrimLogic.GetStoredDeathStreakMultiplierValue(death)
+        local comboSum = GrimLogic.GetStoredDeathMultiplierValue(death)
+        local awardedPoints = GrimLogic.GetStoredDeathAwardedPoints(death)
         return {
             basePoints = tostring(basePoints),
             comboMultiplier = "x" .. tostring(comboMultiplier),
@@ -78,25 +78,25 @@ local function Create()
         return {
             env = ui.env,
             ns = ui.ns,
-            DeathpoolUI = ui.DeathpoolUI,
-            DeathpoolUIAutocomplete = ui.DeathpoolUIAutocomplete,
-            DeathpoolUIDeathLogList = ui.DeathpoolUIDeathLogList,
-            DeathpoolUIDebug = ui.DeathpoolUIDebug,
-            DeathpoolUIDemo = ui.DeathpoolUIDemo,
-            DeathpoolUIHelp = ui.DeathpoolUIHelp,
-            DeathpoolUILog = ui.DeathpoolUILog,
-            DeathpoolUIMain = ui.DeathpoolUIMain,
-            DeathpoolUIMainCollapsed = ui.DeathpoolUIMainCollapsed,
-            DeathpoolUIMainPrediction = ui.DeathpoolUIMainPrediction,
-            DeathpoolUIMainRecentDeaths = ui.DeathpoolUIMainRecentDeaths,
-            DeathpoolUIRefresh = ui.DeathpoolUIRefresh,
-            DeathpoolUITooltip = ui.DeathpoolUITooltip,
-            DeathpoolConstants = ui.DeathpoolConstants,
-            DeathpoolDatabase = ui.DeathpoolDatabase,
-            DeathpoolLogic = ui.DeathpoolLogic,
-            Deathpool = ui.Deathpool,
-            DeathpoolDebug = ui.DeathpoolDebug,
-            DeathpoolLog = ui.DeathpoolLog,
+            GrimUI = ui.GrimUI,
+            GrimUIAutocomplete = ui.GrimUIAutocomplete,
+            GrimUIDeathLogList = ui.GrimUIDeathLogList,
+            GrimUIDebug = ui.GrimUIDebug,
+            GrimUIDemo = ui.GrimUIDemo,
+            GrimUIHelp = ui.GrimUIHelp,
+            GrimUILog = ui.GrimUILog,
+            GrimUIMain = ui.GrimUIMain,
+            GrimUIMainCollapsed = ui.GrimUIMainCollapsed,
+            GrimUIMainPrediction = ui.GrimUIMainPrediction,
+            GrimUIMainRecentDeaths = ui.GrimUIMainRecentDeaths,
+            GrimUIRefresh = ui.GrimUIRefresh,
+            GrimUITooltip = ui.GrimUITooltip,
+            GrimConstants = ui.GrimConstants,
+            GrimDatabase = ui.GrimDatabase,
+            GrimLogic = ui.GrimLogic,
+            GrimMainFrame = ui.GrimMainFrame,
+            GrimDebug = ui.GrimDebug,
+            GrimLog = ui.GrimLog,
             printedMessages = ui.printedMessages,
             sendChatMessage = ui.sendChatMessage,
             cvars = ui.cvars,
@@ -113,9 +113,9 @@ local function Create()
     return {
         Fixtures = Fixtures,
         ns = loadedLogic.ns,
-        DeathpoolConstants = loadedLogic.DeathpoolConstants,
-        DeathpoolDatabase = loadedLogic.DeathpoolDatabase,
-        DeathpoolLogic = DeathpoolLogic,
+        GrimConstants = loadedLogic.GrimConstants,
+        GrimDatabase = loadedLogic.GrimDatabase,
+        GrimLogic = GrimLogic,
         createUIContext = createUIContext,
         buildLevelPointsSummary = buildLevelPointsSummary,
         formatPredictionPreview = formatPredictionPreview,

@@ -18,7 +18,7 @@ describe("Minimap integration", function()
     ---@param env table
     ---@return nil
     local function initializeEnvironment(env)
-        env.DeathpoolCharacterState = nil
+        env.GrimCharacterState = nil
         env.FormatLargeNumber = formatScoreStub
         env.strtrim = function(text)
             return (tostring(text):gsub("^%s+", ""):gsub("%s+$", ""))
@@ -117,7 +117,7 @@ describe("Minimap integration", function()
         initializeEnvironment(loader.env)
         local state = createLibStubs(loader.env)
         state.env = loader.env
-        local module = loader:LoadThrough("DeathpoolUIMinimap")
+        local module = loader:LoadThrough("GrimUIMinimap")
         return module, state, loader.ns
     end
 
@@ -193,7 +193,7 @@ describe("Minimap integration", function()
         it("creates default minimap settings", function()
             local database = {}
 
-            ns.DeathpoolDatabase.GetMinimapSettings(database)
+            ns.GrimDatabase.GetMinimapSettings(database)
 
             assert.is_table(database.minimap, "database model should create a minimap settings table")
             assert.equals(false, database.minimap.hide, "database model should leave the minimap icon visible by default")
@@ -214,15 +214,15 @@ describe("Minimap integration", function()
             minimap.Initialize(frame, firstDatabase)
             assert.spy(libDBIcon.Register).was_called(1)
             assert.spy(libDBIcon.Register).was_called_with(
-                match.is_ref(libDBIcon), "Deathpool", match.is_ref(state.lastDataObject), match.is_ref(firstDatabase.minimap)
+                match.is_ref(libDBIcon), "GrimGuesser", match.is_ref(state.lastDataObject), match.is_ref(firstDatabase.minimap)
             )
             assert.spy(libDBIcon.Refresh).was_not_called()
             assert.spy(libDBIcon.Show).was_called(1)
-            assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "Deathpool")
+            assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "GrimGuesser")
             assert.equals(false, state.button.hidden, "initialization should leave the minimap button visible")
             assert.is_not_nil(state.button, "initialization should create the minimap button through LibDBIcon")
             assert.equals("data source", state.lastDataObject.type, "initialization should expose the broker as a data source for Titan-style displays")
-            assert.equals("Deathpool", state.lastDataObject.label, "initialization should expose the launcher label for broker displays")
+            assert.equals("Grim Guesser", state.lastDataObject.label, "initialization should expose the launcher label for broker displays")
             assert.equals("0", state.lastDataObject.text, "initialization should expose the current score text for broker displays")
             assert.equals("0", state.lastDataObject.value, "initialization should expose the current score value for broker displays")
             assert.equals(
@@ -235,7 +235,7 @@ describe("Minimap integration", function()
             minimap.Initialize(secondFrame, secondDatabase)
             assert.spy(libDBIcon.Register).was_called(1)
             assert.spy(libDBIcon.Refresh).was_called(1)
-            assert.spy(libDBIcon.Refresh).was_called_with(match.is_ref(libDBIcon), "Deathpool", match.is_ref(secondDatabase.minimap))
+            assert.spy(libDBIcon.Refresh).was_called_with(match.is_ref(libDBIcon), "GrimGuesser", match.is_ref(secondDatabase.minimap))
         end)
 
         it("refreshes launcher text from the current score", function()
@@ -266,14 +266,14 @@ describe("Minimap integration", function()
             minimap.SetHidden(frame, database, true)
             assert.equals(true, database.minimap.hide, "hiding the minimap icon should persist the hidden state")
             assert.spy(libDBIcon.Hide).was_called(1)
-            assert.spy(libDBIcon.Hide).was_called_with(match.is_ref(libDBIcon), "Deathpool")
+            assert.spy(libDBIcon.Hide).was_called_with(match.is_ref(libDBIcon), "GrimGuesser")
             assert.spy(libDBIcon.Show).was_not_called()
             assert.equals(true, state.button.hidden, "hiding the minimap icon should hide the button")
 
             minimap.SetHidden(frame, database, false)
             assert.equals(false, database.minimap.hide, "showing the minimap icon should persist the visible state")
             assert.spy(libDBIcon.Show).was_called(1)
-            assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "Deathpool")
+            assert.spy(libDBIcon.Show).was_called_with(match.is_ref(libDBIcon), "GrimGuesser")
             assert.spy(libDBIcon.Hide).was_called(1)
             assert.equals(false, state.button.hidden, "showing the minimap icon should show the button")
         end)
@@ -384,7 +384,7 @@ describe("Minimap integration", function()
             minimap.Initialize(frame, database)
             state.lastDataObject.OnTooltipShow(tooltip)
 
-            assert.equals("Hardcore Death Pool", tooltip.lines[1], "tooltip should start with the addon name")
+            assert.equals("Grim Guesser", tooltip.lines[1], "tooltip should start with the addon name")
             assert.equals("Level 20-29, source Hogger, or zone Elwynn Forest.", tooltip.lines[2], "tooltip should show the current locked prediction text")
             assert.equals("Score: 1,234", tooltip.lines[3], "tooltip should show the current running score")
         end)

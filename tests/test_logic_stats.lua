@@ -2,21 +2,21 @@ local assert = require("luassert")
 describe("Statistics", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolStats
-    local DeathpoolDatabase
+    local GrimStats
+    local GrimDatabase
     local Fixtures
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolStats = context.DeathpoolStats
-        DeathpoolDatabase = context.DeathpoolDatabase
+        GrimStats = context.GrimStats
+        GrimDatabase = context.GrimDatabase
         Fixtures = context.Fixtures
     end)
 
-    ---@param deaths DeathpoolDeath[]
-    ---@return DeathpoolCharacterState
+    ---@param deaths GrimDeath[]
+    ---@return GrimCharacterState
     local function createDatabaseWithHistory(deaths)
-        return DeathpoolDatabase.Init({
+        return GrimDatabase.Init({
             deathHistory = deaths,
         })
     end
@@ -25,7 +25,7 @@ describe("Statistics", function()
     ---@param sourceName string|nil|false
     ---@param zone string|nil|false
     ---@param level integer|nil|false
-    ---@return DeathpoolDeath
+    ---@return GrimDeath
     local function death(timestamp, sourceName, zone, level)
         return Fixtures.storedDeath({
             timestamp = timestamp,
@@ -37,16 +37,16 @@ describe("Statistics", function()
 
     describe("basic statistics", function()
         it("returns nil for empty history", function()
-            local database = DeathpoolDatabase.Init({})
-            local summary = DeathpoolStats.GetDeathSummary(database)
+            local database = GrimDatabase.Init({})
+            local summary = GrimStats.GetDeathSummary(database)
 
-            assert.is_nil(DeathpoolStats.GetDeadliestSource(database), "empty history should have no deadliest source")
+            assert.is_nil(GrimStats.GetDeadliestSource(database), "empty history should have no deadliest source")
             assert.is_nil(
-                DeathpoolStats.GetDeadliestLevelBracket(database),
+                GrimStats.GetDeadliestLevelBracket(database),
                 "empty history should have no deadliest level bracket"
             )
-            assert.is_nil(DeathpoolStats.GetDeadliestLocation(database), "empty history should have no deadliest location")
-            assert.equals(0, #DeathpoolStats.GetTopSources(database), "empty history should return no top sources")
+            assert.is_nil(GrimStats.GetDeadliestLocation(database), "empty history should have no deadliest location")
+            assert.equals(0, #GrimStats.GetTopSources(database), "empty history should return no top sources")
             assert.equals(0, summary.sampleSize, "empty summary should report zero samples")
             assert.is_nil(summary.deadliestSource, "empty summary should have no deadliest source")
         end)
@@ -61,17 +61,17 @@ describe("Statistics", function()
 
             assert.equals(
                 "Murloc Forager",
-                DeathpoolStats.GetDeadliestSource(database),
+                GrimStats.GetDeadliestSource(database),
                 "deadliest source should use count, then latest death as a tie-breaker"
             )
             assert.equals(
                 "20-29",
-                DeathpoolStats.GetDeadliestLevelBracket(database),
+                GrimStats.GetDeadliestLevelBracket(database),
                 "deadliest level bracket should use the configured prediction ranges"
             )
             assert.equals(
                 "Elwynn Forest",
-                DeathpoolStats.GetDeadliestLocation(database),
+                GrimStats.GetDeadliestLocation(database),
                 "deadliest location should return the most common retained zone"
             )
         end)
@@ -86,8 +86,8 @@ describe("Statistics", function()
                 death(400, "Murloc Forager", "Elwynn Forest", 27),
                 death(500, "Defias Pillager", "Westfall", 31),
             })
-            local sources = DeathpoolStats.GetTopSources(database, 2)
-            local brackets = DeathpoolStats.GetTopLevelBrackets(database)
+            local sources = GrimStats.GetTopSources(database, 2)
+            local brackets = GrimStats.GetTopLevelBrackets(database)
 
             assert.equals(2, #sources, "top source limit should cap returned rows")
             assert.equals("Murloc Forager", sources[1].label, "top source should honor latest tie-breaks")
@@ -105,9 +105,9 @@ describe("Statistics", function()
                 death(300, false, false, 22),
                 death(400, "Murloc Forager", "Darkshore", 7),
             })
-            local sources = DeathpoolStats.GetTopSources(database)
-            local locations = DeathpoolStats.GetTopLocations(database)
-            local brackets = DeathpoolStats.GetTopLevelBrackets(database)
+            local sources = GrimStats.GetTopSources(database)
+            local locations = GrimStats.GetTopLocations(database)
+            local brackets = GrimStats.GetTopLevelBrackets(database)
 
             assert.equals(2, #sources, "source stats should ignore missing sources")
             assert.equals(3, #locations, "location stats should ignore only missing locations")
@@ -122,7 +122,7 @@ describe("Statistics", function()
                 death(400, false, "Elwynn Forest", 18),
                 death(500, "Murloc Forager", "Darkshore", 22),
             })
-            local pairs = DeathpoolStats.GetTopSourceLocationPairs(database)
+            local pairs = GrimStats.GetTopSourceLocationPairs(database)
 
             assert.equals(2, #pairs, "source-location pairs should require both source and location")
             assert.equals("Hogger in Elwynn Forest", pairs[1].label, "top pair should combine source and location")
@@ -144,9 +144,9 @@ describe("Statistics", function()
                 death(700, "Murloc Forager", "Darkshore", 27),
                 death(800, "Hogger", "Elwynn Forest", 32),
             })
-            local sourceTrends = DeathpoolStats.GetRecentSourceTrends(database, 4)
-            local locationTrends = DeathpoolStats.GetRecentLocationTrends(database, 4)
-            local bracketTrends = DeathpoolStats.GetRecentLevelBracketTrends(database, 4)
+            local sourceTrends = GrimStats.GetRecentSourceTrends(database, 4)
+            local locationTrends = GrimStats.GetRecentLocationTrends(database, 4)
+            local bracketTrends = GrimStats.GetRecentLevelBracketTrends(database, 4)
 
             assert.equals("Murloc Forager", sourceTrends[1].label, "new recent source should lead recent trends")
             assert.equals("new", sourceTrends[1].trend, "source absent from older history should be marked new")
@@ -168,10 +168,10 @@ describe("Statistics", function()
                 death(400, "Murloc Forager", "Darkshore", 24),
                 death(500, "Murloc Raider", "Darkshore", 27),
             })
-            local repeatSource = DeathpoolStats.GetRecentRepeatSource(database, 3)
-            local repeatLocation = DeathpoolStats.GetRecentRepeatLocation(database, 3)
-            local repeatBracket = DeathpoolStats.GetRecentRepeatLevelBracket(database, 3)
-            local cluster = DeathpoolStats.GetRecentCluster(database, 3)
+            local repeatSource = GrimStats.GetRecentRepeatSource(database, 3)
+            local repeatLocation = GrimStats.GetRecentRepeatLocation(database, 3)
+            local repeatBracket = GrimStats.GetRecentRepeatLevelBracket(database, 3)
+            local cluster = GrimStats.GetRecentCluster(database, 3)
 
             assert.equals("Murloc Forager", repeatSource.label, "recent repeat source should find repeated recent source")
             assert.equals(2, repeatSource.count, "recent repeat source should require more than one hit")
@@ -192,7 +192,7 @@ describe("Statistics", function()
                 death(400, "Murloc Forager", "Darkshore", 24),
                 death(500, "Murloc Raider", "Darkshore", 27),
             })
-            local summary = DeathpoolStats.GetDeathSummary(database, {
+            local summary = GrimStats.GetDeathSummary(database, {
                 topLimit = 2,
                 trendLimit = 1,
                 recentWindowSize = 3,
@@ -224,7 +224,7 @@ describe("Statistics", function()
                 death(1400, "Source C", "Elwynn Forest", 22),
                 death(1500, "Source C", "Elwynn Forest", 22),
             })
-            local summary = DeathpoolStats.GetDeathSummary(database, {
+            local summary = GrimStats.GetDeathSummary(database, {
                 trendLimit = 1,
                 recentWindowSize = 5,
             })

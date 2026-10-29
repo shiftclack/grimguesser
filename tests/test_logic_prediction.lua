@@ -2,14 +2,14 @@ local assert = require("luassert")
 describe("Prediction logic", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolLogic
+    local GrimLogic
     local Fixtures
     local SCORE_RULES
     local Helpers
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolLogic = context.DeathpoolLogic
+        GrimLogic = context.GrimLogic
         Fixtures = context.Fixtures
         SCORE_RULES = context.SCORE_RULES
         Helpers = context.Helpers
@@ -17,17 +17,17 @@ describe("Prediction logic", function()
 
     describe("level scoring", function()
         it("defines level ranges", function()
-            assert.is_truthy(DeathpoolLogic.IsLevelInRange(10, "10-19"), "10 should fall in the 10-19 range")
-            assert.equals(false, DeathpoolLogic.IsLevelInRange(20, "10-19"), "20 should not fall in the 10-19 range")
-            assert.is_truthy(DeathpoolLogic.IsLevelInRange(60, "60"), "60 should match the capped 60 range")
+            assert.is_truthy(GrimLogic.IsLevelInRange(10, "10-19"), "10 should fall in the 10-19 range")
+            assert.equals(false, GrimLogic.IsLevelInRange(20, "10-19"), "20 should not fall in the 10-19 range")
+            assert.is_truthy(GrimLogic.IsLevelInRange(60, "60"), "60 should match the capped 60 range")
             assert.equals(
                 "20-29",
-                DeathpoolLogic.GetLevelRangeForLevel(27),
+                GrimLogic.GetLevelRangeForLevel(27),
                 "level range lookup should return the configured bucket label"
             )
             assert.equals(
                 nil,
-                DeathpoolLogic.GetLevelRangeForLevel(9),
+                GrimLogic.GetLevelRangeForLevel(9),
                 "level range lookup should return nil for levels outside configured buckets"
             )
         end)
@@ -49,7 +49,7 @@ describe("Prediction logic", function()
             end
 
             for _, case in ipairs(cases) do
-                assert.equals(case.points, DeathpoolLogic.GetLevelPointsForLevel(case.level), case.label)
+                assert.equals(case.points, GrimLogic.GetLevelPointsForLevel(case.level), case.label)
             end
         end)
 
@@ -77,7 +77,7 @@ describe("Prediction logic", function()
             end
 
             for _, case in ipairs(cases) do
-                assert.equals(case.points, DeathpoolLogic.GetLevelPointsForRange(case.levelRange), case.label)
+                assert.equals(case.points, GrimLogic.GetLevelPointsForRange(case.levelRange), case.label)
             end
         end)
 
@@ -87,12 +87,12 @@ describe("Prediction logic", function()
 
             assert.equals(
                 77,
-                DeathpoolLogic.GetLevelPointsForLevel(58),
+                GrimLogic.GetLevelPointsForLevel(58),
                 "fixed-range mode should use the configured bucket points for matched deaths"
             )
             assert.equals(
                 77,
-                DeathpoolLogic.GetLevelPointsForRange("50-59"),
+                GrimLogic.GetLevelPointsForRange("50-59"),
                 "fixed-range mode should use the configured bucket points for previews"
             )
         end)
@@ -102,13 +102,13 @@ describe("Prediction logic", function()
         it("formats predictions", function()
             assert.equals(
                 "Prediction not locked in yet.",
-                DeathpoolLogic.FormatLockedPrediction(nil),
+                GrimLogic.FormatLockedPrediction(nil),
                 "empty prediction should have the placeholder summary"
             )
 
             assert.equals(
                 "Level 20-29, source Hogger, or zone Elwynn Forest.",
-                DeathpoolLogic.FormatLockedPrediction(Fixtures.prediction({
+                GrimLogic.FormatLockedPrediction(Fixtures.prediction({
                     levelRange = "20-29",
                 })),
                 "locked prediction should render labels directly"
@@ -116,7 +116,7 @@ describe("Prediction logic", function()
 
             assert.equals(
                 "Level none, source none, or zone none.",
-                DeathpoolLogic.FormatLockedPrediction(Fixtures.prediction({
+                GrimLogic.FormatLockedPrediction(Fixtures.prediction({
                     levelRange = false,
                     source = false,
                     zone = false,
@@ -130,27 +130,27 @@ describe("Prediction logic", function()
         it("normalizes prediction values", function()
             assert.equals(
                 "hogger",
-                DeathpoolLogic.NormalizePredictionValue("Hogger", "No Source Prediction"),
+                GrimLogic.NormalizePredictionValue("Hogger", "No Source Prediction"),
                 "prediction normalization should lowercase real values"
             )
             assert.equals(
                 "hogger",
-                DeathpoolLogic.NormalizePredictionValue("  Hogger  ", "No Source Prediction"),
+                GrimLogic.NormalizePredictionValue("  Hogger  ", "No Source Prediction"),
                 "prediction normalization should trim real values"
             )
             assert.equals(
                 nil,
-                DeathpoolLogic.NormalizePredictionValue("No Source Prediction", "No Source Prediction"),
+                GrimLogic.NormalizePredictionValue("No Source Prediction", "No Source Prediction"),
                 "prediction normalization should treat the placeholder as unset"
             )
             assert.equals(
                 nil,
-                DeathpoolLogic.NormalizePredictionValue("  No Source Prediction  ", "No Source Prediction"),
+                GrimLogic.NormalizePredictionValue("  No Source Prediction  ", "No Source Prediction"),
                 "prediction normalization should trim placeholders before treating them as unset"
             )
             assert.equals(
                 "Elwynn Forest",
-                DeathpoolLogic.ToDisplayText("elwynn forest"),
+                GrimLogic.ToDisplayText("elwynn forest"),
                 "display text should title-case lowercase values"
             )
         end)
@@ -158,12 +158,12 @@ describe("Prediction logic", function()
         it("provides prediction helper utilities", function()
             assert.equals(
                 3,
-                DeathpoolLogic.GetSelectedPredictionCount(Fixtures.prediction()),
+                GrimLogic.GetSelectedPredictionCount(Fixtures.prediction()),
                 "selected prediction helper should count all chosen fields"
             )
             assert.equals(
                 1,
-                DeathpoolLogic.GetSelectedPredictionCount(Fixtures.prediction({
+                GrimLogic.GetSelectedPredictionCount(Fixtures.prediction({
                     levelRange = false,
                     zone = false,
                     zoneLabel = false,
@@ -172,7 +172,7 @@ describe("Prediction logic", function()
             )
             assert.equals(
                 2,
-                DeathpoolLogic.GetMatchedPredictionCount({
+                GrimLogic.GetMatchedPredictionCount({
                     levelMatched = true,
                     sourceMatched = true,
                     zoneMatched = false,
@@ -181,11 +181,11 @@ describe("Prediction logic", function()
             )
             assert.equals(
                 0,
-                DeathpoolLogic.GetMatchedPredictionCount(nil),
+                GrimLogic.GetMatchedPredictionCount(nil),
                 "matched prediction helper should default nil evaluations to zero"
             )
             assert.is_truthy(
-                DeathpoolLogic.ArePredictionsEquivalent(
+                GrimLogic.ArePredictionsEquivalent(
                     Fixtures.prediction(),
                     Fixtures.prediction()
                 ),
@@ -193,7 +193,7 @@ describe("Prediction logic", function()
             )
             assert.equals(
                 false,
-                DeathpoolLogic.ArePredictionsEquivalent(
+                GrimLogic.ArePredictionsEquivalent(
                     Fixtures.prediction(),
                     Fixtures.prediction({ source = "defias", sourceLabel = "Defias" })
                 ),

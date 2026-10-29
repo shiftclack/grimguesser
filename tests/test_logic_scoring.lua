@@ -2,14 +2,14 @@ local assert = require("luassert")
 describe("Scoring logic", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolLogic
+    local GrimLogic
     local Fixtures
     local SCORE_RULES
     local Helpers
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolLogic = context.DeathpoolLogic
+        GrimLogic = context.GrimLogic
         Fixtures = context.Fixtures
         SCORE_RULES = context.SCORE_RULES
         Helpers = context.Helpers
@@ -17,7 +17,7 @@ describe("Scoring logic", function()
 
     describe("evaluation and bonuses", function()
         it("matches all selected fields", function()
-            local evaluation = DeathpoolLogic.EvaluatePrediction(
+            local evaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction(),
                 Fixtures.death()
             )
@@ -41,7 +41,7 @@ describe("Scoring logic", function()
         end)
 
         it("awards points for partial matches", function()
-            local partialEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local partialEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     zone = false,
                 }),
@@ -54,14 +54,14 @@ describe("Scoring logic", function()
             assert.equals(false, partialEvaluation.sourceMatched, "partial evaluation should track the missed field")
             assert.is_truthy(partialEvaluation.matched, "partial evaluation should now count any matched element as a win")
             assert.equals(
-                DeathpoolLogic.GetLevelPointsForLevel(12),
+                GrimLogic.GetLevelPointsForLevel(12),
                 partialEvaluation.basePoints,
                 "partial evaluation should give level-only matches the configured level points"
             )
         end)
 
         it("awards source points when the level misses", function()
-            local levelMissSourceHitEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local levelMissSourceHitEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     levelRange = "20-29",
                     source = "hogger",
@@ -82,7 +82,7 @@ describe("Scoring logic", function()
         end)
 
         it("supports single-field predictions", function()
-            local singleFieldEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local singleFieldEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     levelRange = false,
                     source = "hogger",
@@ -103,14 +103,14 @@ describe("Scoring logic", function()
         end)
 
         it("rejects empty predictions", function()
-            local emptyPredictionEvaluation = DeathpoolLogic.EvaluatePrediction({}, Fixtures.death())
+            local emptyPredictionEvaluation = GrimLogic.EvaluatePrediction({}, Fixtures.death())
 
             assert.equals(false, emptyPredictionEvaluation.matched, "empty predictions should not count as wins")
             assert.equals(0, emptyPredictionEvaluation.basePoints, "empty predictions should award no points")
         end)
 
         it("scores high-level range matches", function()
-            local highLevelEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local highLevelEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     source = false,
                     zone = false,
@@ -123,14 +123,14 @@ describe("Scoring logic", function()
 
             assert.is_truthy(highLevelEvaluation.matched, "high-level range predictions should still match normally")
             assert.equals(
-                DeathpoolLogic.GetLevelPointsForLevel(58),
+                GrimLogic.GetLevelPointsForLevel(58),
                 highLevelEvaluation.basePoints,
                 "high-level range wins should award the configured matched level points"
             )
         end)
 
         it("returns zero scoring data for complete misses", function()
-            local missedHighValueEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local missedHighValueEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     levelRange = "60",
                     source = "hogger",
@@ -149,7 +149,7 @@ describe("Scoring logic", function()
         end)
 
         it("normalizes source and zone comparisons", function()
-            local zoneCombinationEvaluation = DeathpoolLogic.EvaluatePrediction(
+            local zoneCombinationEvaluation = GrimLogic.EvaluatePrediction(
                 Fixtures.prediction({
                     levelRange = false,
                     source = "defias pillager",
@@ -177,8 +177,8 @@ describe("Scoring logic", function()
         end)
 
         it("awards same-zone bonus points", function()
-            local matchedEvaluation = DeathpoolLogic.ScoreDeathEvent(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction()),
+            local matchedEvaluation = GrimLogic.ScoreDeathEvent(
+                GrimLogic.GetPredictionElements(Fixtures.prediction()),
                 Fixtures.death(),
                 2,
                 { playerZone = "Elwynn Forest" }
@@ -217,8 +217,8 @@ describe("Scoring logic", function()
                 "same-zone bonus should not change the matched element count when zone was predicted"
             )
 
-            local noZonePredictionEvaluation = DeathpoolLogic.ScoreDeathEvent(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction({
+            local noZonePredictionEvaluation = GrimLogic.ScoreDeathEvent(
+                GrimLogic.GetPredictionElements(Fixtures.prediction({
                     zone = false,
                 })),
                 Fixtures.death(),
@@ -248,16 +248,16 @@ describe("Scoring logic", function()
                 "same-zone bonus should add into the total even when zone was not predicted"
             )
 
-            local nonBonusEvaluation = DeathpoolLogic.ScoreDeathEvent(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction()),
+            local nonBonusEvaluation = GrimLogic.ScoreDeathEvent(
+                GrimLogic.GetPredictionElements(Fixtures.prediction()),
                 Fixtures.death(),
                 2,
                 { playerZone = "Westfall" }
             )
             assert.equals(0, nonBonusEvaluation.sameZoneBonusPoints, "same-zone bonus should stay zero when the flag is off")
 
-            local previewEvaluation = DeathpoolLogic.ScorePreview(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction()),
+            local previewEvaluation = GrimLogic.ScorePreview(
+                GrimLogic.GetPredictionElements(Fixtures.prediction()),
                 2
             )
             assert.equals(
@@ -266,8 +266,8 @@ describe("Scoring logic", function()
                 "preview scoring should not apply the live same-zone bonus"
             )
 
-            local missedEvaluation = DeathpoolLogic.ScoreDeathEvent(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction({
+            local missedEvaluation = GrimLogic.ScoreDeathEvent(
+                GrimLogic.GetPredictionElements(Fixtures.prediction({
                     levelRange = "60",
                     source = "defias pillager",
                     zone = "westfall",
@@ -282,7 +282,7 @@ describe("Scoring logic", function()
         end)
 
         it("reports combo details", function()
-            local details = DeathpoolLogic.GetComboDetails(
+            local details = GrimLogic.GetComboDetails(
                 Fixtures.prediction({
                     levelRange = false,
                     source = "benny blaanco",
@@ -310,7 +310,7 @@ describe("Scoring logic", function()
                 "combo details should format the best combo bonus without repeating the streak"
             )
 
-            local missedDetails = DeathpoolLogic.GetComboDetails(
+            local missedDetails = GrimLogic.GetComboDetails(
                 Fixtures.prediction({
                     levelRange = false,
                     source = "benny blaanco",
@@ -363,8 +363,8 @@ describe("Scoring logic", function()
                 { streak = SCORE_RULES.maxStreakBonus + 1, bonus = SCORE_RULES.maxStreakBonus, label = "streaks beyond the configured cap should stay capped" },
             }
 
-            local nilStreakScore = DeathpoolLogic.ScoreDeathEvent(
-                DeathpoolLogic.GetPredictionElements(Fixtures.prediction({
+            local nilStreakScore = GrimLogic.ScoreDeathEvent(
+                GrimLogic.GetPredictionElements(Fixtures.prediction({
                     levelRange = false,
                     zone = false,
                 })) or {},
@@ -374,7 +374,7 @@ describe("Scoring logic", function()
             assert.equals(0, nilStreakScore.streakBonus, "nil streak should default to no streak bonus at the scoring boundary")
 
             for _, case in ipairs(streakCases) do
-                local actual = DeathpoolLogic._CalculateStreakBonus(case.streak)
+                local actual = GrimLogic._CalculateStreakBonus(case.streak)
                 assert.equals(case.bonus, actual, case.label)
             end
 
@@ -471,8 +471,8 @@ describe("Scoring logic", function()
             }
 
             for _, case in ipairs(multiplierCases) do
-                local elements = DeathpoolLogic.GetPredictionElements(case.prediction) or {}
-                local score = DeathpoolLogic.ScoreDeathEvent(elements, case.death, case.streak)
+                local elements = GrimLogic.GetPredictionElements(case.prediction) or {}
+                local score = GrimLogic.ScoreDeathEvent(elements, case.death, case.streak)
 
                 assert.equals(case.matched, score.matched, case.label .. " matched state")
                 assert.equals(
@@ -490,15 +490,15 @@ describe("Scoring logic", function()
     describe("preview and formatting", function()
         it("calculates prediction preview scoring", function()
             local function scorePredictionPreview(prediction)
-                return DeathpoolLogic.ScorePreview(
-                    DeathpoolLogic.GetPredictionElements(prediction) or {},
-                    DeathpoolLogic.GetPreviewStreak()
+                return GrimLogic.ScorePreview(
+                    GrimLogic.GetPredictionElements(prediction) or {},
+                    GrimLogic.GetPreviewStreak()
                 )
             end
 
             local emptyBasePoints = 0
             local sourceBasePoints = Helpers.getExpectedBasePoints({ source = true })
-            local levelBasePoints = DeathpoolLogic.GetLevelPointsForRange("50-59")
+            local levelBasePoints = GrimLogic.GetLevelPointsForRange("50-59")
             local levelSourceBasePoints = Helpers.getExpectedBasePoints({
                 levelRange = "20-29",
                 level = 20,
@@ -578,7 +578,7 @@ describe("Scoring logic", function()
             }
 
             for _, case in ipairs(cases) do
-                assert.equals(case.expected, DeathpoolLogic.FormatMultiplier(case.multiplier), case.label)
+                assert.equals(case.expected, GrimLogic.FormatMultiplier(case.multiplier), case.label)
             end
         end)
     end)
@@ -586,20 +586,20 @@ describe("Scoring logic", function()
     describe("display values", function()
         it("builds prediction payout preview rows", function()
             local function getPayoutRowPoints(prediction)
-                return DeathpoolLogic.ScorePreview(
-                    DeathpoolLogic.GetPredictionElements(prediction) or {},
+                return GrimLogic.ScorePreview(
+                    GrimLogic.GetPredictionElements(prediction) or {},
                     0
                 ).awardedPoints or 0
             end
 
-            local emptyRows = DeathpoolLogic.GetPredictionPayoutPreviewRows(Fixtures.prediction({
+            local emptyRows = GrimLogic.GetPredictionPayoutPreviewRows(Fixtures.prediction({
                 levelRange = false,
                 source = false,
                 zone = false,
             }))
             assert.equals(0, #emptyRows, "payout preview rows should omit impossible rows when nothing is selected")
 
-            local oneFieldRows = DeathpoolLogic.GetPredictionPayoutPreviewRows(Fixtures.prediction({
+            local oneFieldRows = GrimLogic.GetPredictionPayoutPreviewRows(Fixtures.prediction({
                 source = false,
                 zone = false,
                 levelRange = "50-59",
@@ -620,7 +620,7 @@ describe("Scoring logic", function()
                 levelRange = "20-29",
                 source = "hogger",
             })
-            local twoFieldRows = DeathpoolLogic.GetPredictionPayoutPreviewRows(twoFieldPrediction)
+            local twoFieldRows = GrimLogic.GetPredictionPayoutPreviewRows(twoFieldPrediction)
             local twoFieldLevelOnlyPoints = getPayoutRowPoints(Fixtures.prediction({
                 zone = false,
                 levelRange = "20-29",
@@ -642,7 +642,7 @@ describe("Scoring logic", function()
                 source = "benny",
                 zone = "westfall",
             })
-            local threeFieldRows = DeathpoolLogic.GetPredictionPayoutPreviewRows(threeFieldPrediction)
+            local threeFieldRows = GrimLogic.GetPredictionPayoutPreviewRows(threeFieldPrediction)
             local threeFieldLevelOnlyPoints = getPayoutRowPoints(Fixtures.prediction({
                 levelRange = "10-19",
                 source = false,
@@ -741,7 +741,7 @@ describe("Scoring logic", function()
             end
 
             for _, case in ipairs(cases) do
-                assert.equals(case.quality, DeathpoolLogic.GetPointColorQuality(case.points), case.label)
+                assert.equals(case.quality, GrimLogic.GetPointColorQuality(case.points), case.label)
             end
         end)
     end)

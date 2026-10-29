@@ -1,8 +1,8 @@
 local AddonLoader = {}
 
-local DEFAULT_ADDON_NAME = "Deathpool"
+local DEFAULT_ADDON_NAME = "GrimGuesser"
 local DEFAULT_SOURCE_DIR = "./src"
-local DEFAULT_TOC_NAME = "Deathpool_Vanilla.toc"
+local DEFAULT_TOC_NAME = "GrimGuesser_Vanilla.toc"
 local WOW_STANDARD_GLOBAL_NAMES = {
     "assert",
     "collectgarbage",
@@ -152,7 +152,7 @@ end
 function AddonLoader.Create(options)
     options = options or {}
 
-    local sourceDir = options.sourceDir or os.getenv("DEATHPOOL_TEST_SOURCE_DIR") or DEFAULT_SOURCE_DIR
+    local sourceDir = options.sourceDir or os.getenv("GRIMGUESSER_TEST_SOURCE_DIR") or DEFAULT_SOURCE_DIR
 
     return {
         addonName = options.addonName or DEFAULT_ADDON_NAME,

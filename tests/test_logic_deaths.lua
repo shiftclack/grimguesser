@@ -2,14 +2,14 @@ local assert = require("luassert")
 describe("Death handling", function()
     local LogicTestContext = require("tests.support_logic_test_context")
     local context
-    local DeathpoolLogic
+    local GrimLogic
     local Fixtures
     local SCORE_RULES
     local Helpers
 
     before_each(function()
         context = LogicTestContext.Create()
-        DeathpoolLogic = context.DeathpoolLogic
+        GrimLogic = context.GrimLogic
         Fixtures = context.Fixtures
         SCORE_RULES = context.SCORE_RULES
         Helpers = context.Helpers
@@ -21,7 +21,7 @@ describe("Death handling", function()
                 return 12345
             end
 
-            local death = DeathpoolLogic.NormalizeDeathEvent(Fixtures.death({
+            local death = GrimLogic.NormalizeDeathEvent(Fixtures.death({
                 name = "Drakedog",
                 level = 10,
                 causeType = "HARDCORE_CAUSEOFDEATH_CREATURE",
@@ -40,7 +40,7 @@ describe("Death handling", function()
         it("returns stored death values", function()
             assert.equals(
                 math.min(3 * SCORE_RULES.streakBonusStep, SCORE_RULES.maxStreakBonus),
-                DeathpoolLogic.GetStoredDeathStreakMultiplierValue(Fixtures.storedDeath({
+                GrimLogic.GetStoredDeathStreakMultiplierValue(Fixtures.storedDeath({
                     predictionStreak = 4,
                 })),
                 "stored death streak display value should use the raw streak bonus step"
@@ -64,12 +64,12 @@ describe("Death handling", function()
                 }),
             })
 
-            assert.equals(fullMatchBasePoints, DeathpoolLogic.GetStoredDeathBasePoints(death), "stored death base points should be recalculated from the saved prediction")
-            assert.equals(fullMatchMultiplier, DeathpoolLogic.GetStoredDeathMultiplierValue(death), "stored death multiplier should be recalculated from prediction data and streak")
-            assert.equals(fullMatchBasePoints * fullMatchMultiplier, DeathpoolLogic.GetStoredDeathAwardedPoints(death), "stored death awarded points should ignore stale persisted totals")
+            assert.equals(fullMatchBasePoints, GrimLogic.GetStoredDeathBasePoints(death), "stored death base points should be recalculated from the saved prediction")
+            assert.equals(fullMatchMultiplier, GrimLogic.GetStoredDeathMultiplierValue(death), "stored death multiplier should be recalculated from prediction data and streak")
+            assert.equals(fullMatchBasePoints * fullMatchMultiplier, GrimLogic.GetStoredDeathAwardedPoints(death), "stored death awarded points should ignore stale persisted totals")
             assert.equals(
                 0,
-                DeathpoolLogic.GetStoredDeathStreakMultiplierValue(death),
+                GrimLogic.GetStoredDeathStreakMultiplierValue(death),
                 "stored death streak contribution should ignore stale persisted values"
             )
 
@@ -80,12 +80,12 @@ describe("Death handling", function()
             })
             assert.equals(
                 SCORE_RULES.sameZoneFixedBonusPoints,
-                DeathpoolLogic.GetStoredDeathSameZoneBonusPoints(sameZoneDeath),
+                GrimLogic.GetStoredDeathSameZoneBonusPoints(sameZoneDeath),
                 "stored death same-zone bonus should be recomputed from the persisted flag"
             )
             assert.equals(
                 (fullMatchBasePoints + SCORE_RULES.sameZoneFixedBonusPoints) * fullMatchMultiplier,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(sameZoneDeath),
+                GrimLogic.GetStoredDeathAwardedPoints(sameZoneDeath),
                 "stored death awarded points should include the recomputed same-zone bonus"
             )
 
@@ -96,7 +96,7 @@ describe("Death handling", function()
             })
             assert.equals(
                 0,
-                DeathpoolLogic.GetStoredDeathSameZoneBonusPoints(missingSameZoneFlagDeath),
+                GrimLogic.GetStoredDeathSameZoneBonusPoints(missingSameZoneFlagDeath),
                 "stored deaths without the persisted same-zone flag should not infer a bonus during recomputation"
             )
         end)
@@ -110,7 +110,7 @@ describe("Death handling", function()
             })
             assert.equals(
                 SCORE_RULES.maxStreakBonus,
-                DeathpoolLogic.GetStoredDeathStreakMultiplierValue(persistedContributionDeath),
+                GrimLogic.GetStoredDeathStreakMultiplierValue(persistedContributionDeath),
                 "stored death streak contribution should be recomputed from score data even when stale values were persisted"
             )
 
@@ -123,19 +123,19 @@ describe("Death handling", function()
             })
             assert.equals(
                 SCORE_RULES.predictionElementBonusByCount[2] or 0,
-                DeathpoolLogic.GetStoredDeathComboMultiplierValue(partialMatchDeath),
+                GrimLogic.GetStoredDeathComboMultiplierValue(partialMatchDeath),
                 "stored death combo multiplier should isolate the non-streak portion for partial wins"
             )
             assert.equals(
                 (3 - 1) * SCORE_RULES.streakBonusStep,
-                DeathpoolLogic.GetStoredDeathStreakMultiplierValue(partialMatchDeath),
+                GrimLogic.GetStoredDeathStreakMultiplierValue(partialMatchDeath),
                 "stored death streak contribution should be recomputed when no persisted value exists"
             )
 
-            local comboDetails = DeathpoolLogic.GetStoredDeathComboDetails(partialMatchDeath)
+            local comboDetails = GrimLogic.GetStoredDeathComboDetails(partialMatchDeath)
             assert.is_truthy(comboDetails.matched, "stored death combo details should reuse the stored death prediction and death row")
             assert.equals(
-                DeathpoolLogic.GetStoredDeathAwardedPoints(partialMatchDeath),
+                GrimLogic.GetStoredDeathAwardedPoints(partialMatchDeath),
                 comboDetails.awardedPoints,
                 "stored death combo details should match the computed awarded points"
             )
@@ -155,7 +155,7 @@ describe("Death handling", function()
                 + ((3 - 1) * SCORE_RULES.streakBonusStep)
             assert.equals(
                 (partialBasePoints + SCORE_RULES.sameZoneFixedBonusPoints) * partialMultiplier,
-                DeathpoolLogic.GetStoredDeathAwardedPoints(sameZonePartialDeath),
+                GrimLogic.GetStoredDeathAwardedPoints(sameZonePartialDeath),
                 "stored death awarded points should include same-zone bonus when the zone prediction matched"
             )
         end)

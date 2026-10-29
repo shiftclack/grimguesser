@@ -531,7 +531,7 @@ local function initializeGlobals(env, options)
     options = options or {}
     env.UIParent = createRegion("Frame", "UIParent", nil, nil)
     env.UIParent:SetSize(1024, 768)
-    env.DeathpoolCharacterState = nil
+    env.GrimCharacterState = nil
     env.LibStub = nil
     env.UISpecialFrames = {}
     env.__frames = {}
@@ -753,9 +753,9 @@ local function initializeGlobals(env, options)
 end
 
 local function loadUiModules(loader)
-    loader:LoadThrough("DeathpoolUIMain")
+    loader:LoadThrough("GrimUIMain")
 
-    return loader, loader.ns.DeathpoolUI, loader.ns.DeathpoolUIMain, loader.ns.DeathpoolUIMinimap
+    return loader, loader.ns.GrimUI, loader.ns.GrimUIMain, loader.ns.GrimUIMinimap
 end
 
 local UIHarness = {}
@@ -766,55 +766,55 @@ function UIHarness.Create(options)
     local environment = initializeGlobals(loader.env, options)
 
     if options.version then
-        loader:Load("DeathpoolConstants").VERSION = options.version
+        loader:Load("GrimConstants").VERSION = options.version
     end
 
     local printedMessages = {}
-    local _, DeathpoolUI, DeathpoolUIMain, DeathpoolUIMinimap = loadUiModules(loader)
+    local _, GrimUI, GrimUIMain, GrimUIMinimap = loadUiModules(loader)
     local ns = loader.ns
-    loader.env.DeathpoolCharacterState = ns.DeathpoolDatabase.Init(options.state)
-    local Deathpool, DeathpoolDebug, DeathpoolLog = DeathpoolUIMain.Initialize(
-        loader.env.DeathpoolCharacterState,
-        ns.DeathpoolLogic,
-        ns.DeathpoolConstants.STORAGE.maxRecentDeaths
+    loader.env.GrimCharacterState = ns.GrimDatabase.Init(options.state)
+    local GrimMainFrame, GrimDebug, GrimLog = GrimUIMain.Initialize(
+        loader.env.GrimCharacterState,
+        ns.GrimLogic,
+        ns.GrimConstants.STORAGE.maxRecentDeaths
     )
-    Deathpool.__testNs = ns
-    local introDemoController = ns.DeathpoolDemo.Initialize(
-        loader.env.DeathpoolCharacterState,
+    GrimMainFrame.__testNs = ns
+    local introDemoController = ns.GrimDemo.Initialize(
+        loader.env.GrimCharacterState,
         function()
-            Deathpool:RefreshDeaths()
-            Deathpool:RefreshLockedPrediction()
-            Deathpool:RefreshCollapsedSummary()
+            GrimMainFrame:RefreshDeaths()
+            GrimMainFrame:RefreshLockedPrediction()
+            GrimMainFrame:RefreshCollapsedSummary()
         end
     )
-    introDemoController:AttachFrame(Deathpool)
+    introDemoController:AttachFrame(GrimMainFrame)
 
     return {
         env = loader.env,
         loader = loader,
         ns = ns,
-        DeathpoolUI = DeathpoolUI,
-        DeathpoolUIAutocomplete = ns.DeathpoolUIAutocomplete,
-        DeathpoolUIDeathLogList = ns.DeathpoolUIDeathLogList,
-        DeathpoolUIDebug = ns.DeathpoolUIDebug,
-        DeathpoolUIDemo = ns.DeathpoolUIDemo,
-        DeathpoolUIHelp = ns.DeathpoolUIHelp,
-        DeathpoolUILog = ns.DeathpoolUILog,
-        DeathpoolUIMain = DeathpoolUIMain,
-        DeathpoolUIMainCollapsed = ns.DeathpoolUIMainCollapsed,
-        DeathpoolUIMainPrediction = ns.DeathpoolUIMainPrediction,
-        DeathpoolUIMainRecentDeaths = ns.DeathpoolUIMainRecentDeaths,
-        DeathpoolUIMinimap = DeathpoolUIMinimap,
-        DeathpoolUIRefresh = ns.DeathpoolUIRefresh,
-        DeathpoolUITooltip = ns.DeathpoolUITooltip,
-        DeathpoolConstants = ns.DeathpoolConstants,
-        DeathpoolDatabase = ns.DeathpoolDatabase,
-        DeathpoolLogic = ns.DeathpoolLogic,
-        DeathpoolStats = ns.DeathpoolStats,
-        DeathpoolDemo = ns.DeathpoolDemo,
-        Deathpool = Deathpool,
-        DeathpoolDebug = DeathpoolDebug,
-        DeathpoolLog = DeathpoolLog,
+        GrimUI = GrimUI,
+        GrimUIAutocomplete = ns.GrimUIAutocomplete,
+        GrimUIDeathLogList = ns.GrimUIDeathLogList,
+        GrimUIDebug = ns.GrimUIDebug,
+        GrimUIDemo = ns.GrimUIDemo,
+        GrimUIHelp = ns.GrimUIHelp,
+        GrimUILog = ns.GrimUILog,
+        GrimUIMain = GrimUIMain,
+        GrimUIMainCollapsed = ns.GrimUIMainCollapsed,
+        GrimUIMainPrediction = ns.GrimUIMainPrediction,
+        GrimUIMainRecentDeaths = ns.GrimUIMainRecentDeaths,
+        GrimUIMinimap = GrimUIMinimap,
+        GrimUIRefresh = ns.GrimUIRefresh,
+        GrimUITooltip = ns.GrimUITooltip,
+        GrimConstants = ns.GrimConstants,
+        GrimDatabase = ns.GrimDatabase,
+        GrimLogic = ns.GrimLogic,
+        GrimStats = ns.GrimStats,
+        GrimDemo = ns.GrimDemo,
+        GrimMainFrame = GrimMainFrame,
+        GrimDebug = GrimDebug,
+        GrimLog = GrimLog,
         introDemoController = introDemoController,
         printedMessages = printedMessages,
         sendChatMessage = environment.sendChatMessage,
@@ -839,51 +839,51 @@ function UIHarness.CreateAddon(options)
     local loader = AddonLoader.Create()
     local environment = initializeGlobals(loader.env, options)
 
-    local _, DeathpoolUI, DeathpoolUIMain, DeathpoolUIMinimap = loadUiModules(loader)
+    local _, GrimUI, GrimUIMain, GrimUIMinimap = loadUiModules(loader)
     local ns = loader.ns
-    loader.env.DeathpoolCharacterState = options.state
+    loader.env.GrimCharacterState = options.state
     loader:LoadAll()
 
     local function getController()
-        return rawget(loader.env, "DeathpoolAddonFrame")
+        return rawget(loader.env, "GrimAddonFrame")
     end
 
     local function getMainFrame()
-        return rawget(loader.env, "DeathpoolFrame")
+        return rawget(loader.env, "GrimFrame")
     end
 
     local function getDebugFrame()
-        return rawget(loader.env, "DeathpoolDebugFrame")
+        return rawget(loader.env, "GrimDebugFrame")
     end
 
     local function getLogFrame()
-        return rawget(loader.env, "DeathpoolLogFrame")
+        return rawget(loader.env, "GrimLogFrame")
     end
 
     return {
         env = loader.env,
         loader = loader,
         ns = ns,
-        DeathpoolUI = DeathpoolUI,
-        DeathpoolUIAutocomplete = ns.DeathpoolUIAutocomplete,
-        DeathpoolUIDeathLogList = ns.DeathpoolUIDeathLogList,
-        DeathpoolUIDebug = ns.DeathpoolUIDebug,
-        DeathpoolUIDemo = ns.DeathpoolUIDemo,
-        DeathpoolUIHelp = ns.DeathpoolUIHelp,
-        DeathpoolUILog = ns.DeathpoolUILog,
-        DeathpoolUIMain = DeathpoolUIMain,
-        DeathpoolUIMainCollapsed = ns.DeathpoolUIMainCollapsed,
-        DeathpoolUIMainPrediction = ns.DeathpoolUIMainPrediction,
-        DeathpoolUIMainRecentDeaths = ns.DeathpoolUIMainRecentDeaths,
-        DeathpoolUIMinimap = DeathpoolUIMinimap,
-        DeathpoolUIRefresh = ns.DeathpoolUIRefresh,
-        DeathpoolUITooltip = ns.DeathpoolUITooltip,
-        DeathpoolConstants = ns.DeathpoolConstants,
-        DeathpoolDatabase = ns.DeathpoolDatabase,
-        DeathpoolDebug = ns.DeathpoolDebug,
-        DeathpoolDebugState = ns.DeathpoolDebugState,
-        DeathpoolLogic = ns.DeathpoolLogic,
-        DeathpoolUISettings = ns.DeathpoolUISettings,
+        GrimUI = GrimUI,
+        GrimUIAutocomplete = ns.GrimUIAutocomplete,
+        GrimUIDeathLogList = ns.GrimUIDeathLogList,
+        GrimUIDebug = ns.GrimUIDebug,
+        GrimUIDemo = ns.GrimUIDemo,
+        GrimUIHelp = ns.GrimUIHelp,
+        GrimUILog = ns.GrimUILog,
+        GrimUIMain = GrimUIMain,
+        GrimUIMainCollapsed = ns.GrimUIMainCollapsed,
+        GrimUIMainPrediction = ns.GrimUIMainPrediction,
+        GrimUIMainRecentDeaths = ns.GrimUIMainRecentDeaths,
+        GrimUIMinimap = GrimUIMinimap,
+        GrimUIRefresh = ns.GrimUIRefresh,
+        GrimUITooltip = ns.GrimUITooltip,
+        GrimConstants = ns.GrimConstants,
+        GrimDatabase = ns.GrimDatabase,
+        GrimDebug = ns.GrimDebug,
+        GrimDebugState = ns.GrimDebugState,
+        GrimLogic = ns.GrimLogic,
+        GrimUISettings = ns.GrimUISettings,
         controller = getController(),
         getController = getController,
         getMainFrame = getMainFrame,

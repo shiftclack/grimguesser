@@ -1,6 +1,6 @@
 # AGENTS.md file
 
-Hardcore Death Pool (or "Deathpool" for short) is an addon for _World of Warcraft Classic Hardcore_. It's developed in World of Warcraft Lua 5.1. The addon is intended for official WoW Hardcore Classic realms. It does not support Retail WoW.
+Grim Guesser is an addon for _World of Warcraft Classic Hardcore_. It's developed in World of Warcraft Lua 5.1. The addon is intended for official WoW Hardcore Classic realms. It does not support Retail WoW.
 
 ## Additional Documentation
 
@@ -33,16 +33,16 @@ Note: The `*-ci` targets are used for building in CI/UNIX.
 
 ### Module naming
 
-- `Deathpool.lua` is the thin controller. WoW events and slash commands come in; model calls and UI refreshes go out.
-- `DeathpoolLogic*` and `DeathpoolDatabase` are the model layer
-- `DeathpoolUI*` files are the view layer. They read model state through model APIs and update widgets, but should not directly modify the database state, sort model collections, or implement gameplay rules.
+- `GrimController.lua` is the thin controller. WoW events and slash commands come in; model calls and UI refreshes go out.
+- `GrimLogic*` and `GrimDatabase` are the model layer
+- `GrimUI*` files are the view layer. They read model state through model APIs and update widgets, but should not directly modify the database state, sort model collections, or implement gameplay rules.
 
 ### Support files
 
 - `Makefile` should contain reusable commands for building, testing and static analysis. It should be compatible with Windows systems for development and Linux for CI
 - `.luacheckrc` should contain our `luacheck` configuration. Keep changes focused and only update it when project lint rules or recognized WoW globals genuinely need to change
 - `.luarc.json` should contain the LuaLS configuration. Both `.luacheckrc` and `.luarc.json` will need to be configured when referencing new globals or WoW specific functions
-- `src/Deathpool_Vanilla.toc` when adding new addon files, they must be added here in order for the game to load them. Order is important.
+- `src/GrimGuesser_Vanilla.toc` when adding new addon files, they must be added here in order for the game to load them. Order is important.
 
 ## Development
 
@@ -74,7 +74,7 @@ The death feed parser is intentionally conservative. The addon listens only to `
 
 ### Use of third party libraries
 
-No third-party libraries or addons are to be used in production code, with the sole exception of libraries used for minimap integration in `src/DeathpoolUIMinimap.lua`:
+No third-party libraries or addons are to be used in production code, with the sole exception of libraries used for minimap integration in `src/GrimUIMinimap.lua`:
   - LibDBIcon
   - LibDataBroker
   - CallbackHandler
@@ -91,7 +91,7 @@ No third-party libraries or addons are to be used in production code, with the s
 - LuaLS is used to provide type checking via annotations
 - Warnings are surfaced both in the editor UI and as part of `make check`
 - When adding new functions, add LuaLS style `---@param` and `---@return` comments to specify types
-- Check for existing types before adding new ones, especially for files with similar names like `src/DeathpoolUI*.lua` or `src/DeathpoolLogic*.lua`.
+- Check for existing types before adding new ones, especially for files with similar names like `src/GrimUI*.lua` or `src/GrimLogic*.lua`.
 - Prefer being strict about parameters, it helps future developers reason about the codebase
 
 ### WoW vs Standard Lua
@@ -156,12 +156,12 @@ World of Warcraft uses a restricted Lua 5.1 runtime with significant differences
 
 SavedVariables is how WoW persists user configuration and data for the addon.
 
-- Treat `DeathpoolCharacterState` as per-character persistent user data
-- When adding fields, initialize missing values defensively in `DeathpoolDatabase`
+- Treat `GrimCharacterState` as per-character persistent user data
+- When adding fields, initialize missing values defensively in `GrimDatabase`
 - Do not require users to delete SavedVariables for normal addon updates
 - Prefer additive schema changes over breaking renames
-- Other modules should use the `DeathpoolDatabase` public functions to access data, as they enforce necessary data validation safeguards
+- Other modules should use the `GrimDatabase` public functions to access data, as they enforce necessary data validation safeguards
 
 ### Migrations
 
-- In `src/DeathpoolMigration.lua` we have a set of migrations for SavedVariables
+- In `src/GrimMigration.lua` we have a set of migrations for SavedVariables
